@@ -51,13 +51,24 @@ public class ModelParityTest {
             for (JsonElement el : cases) {
                 JsonObject c = el.getAsJsonObject();
                 String id = c.get("id").getAsString();
-                Question q = question(id, c.getAsJsonObject("question"));
                 String state = c.get("state").isJsonNull() ? "" : c.get("state").getAsString();
-                SequenceBuilder.Sequence s = sb.build(sb.stateIds(state), q, cal.maxLen, cal.headMaxLen);
-
                 JsonObject feeds = c.getAsJsonObject("feeds");
                 long[] refIds = row(feeds.getAsJsonArray("input_ids"));
                 long[] refMarkers = row(feeds.getAsJsonArray("marker_pos"));
+
+                // reference.json stores criteria with sorted keys, but the feeds were built with the
+                // original option order. Find the option order whose sequence reproduces the feeds:
+                // the real tokenizer must match one ordering token for token.
+                Question q = null;
+                SequenceBuilder.Sequence s = null;
+                for (Question cand : orderings(id, c.getAsJsonObject("question"))) {
+                    SequenceBuilder.Sequence cs = sb.build(sb.stateIds(state), cand, cal.maxLen, cal.headMaxLen);
+                    if (s == null || Arrays.equals(refIds, cs.ids)) {
+                        q = cand;
+                        s = cs;
+                        if (Arrays.equals(refIds, cs.ids)) break;
+                    }
+                }
                 if (!Arrays.equals(refIds, s.ids)) {
                     System.out.println(id + "\n  ref " + Arrays.toString(refIds) + "\n  got " + Arrays.toString(s.ids));
                 }
@@ -78,6 +89,35 @@ public class ModelParityTest {
         System.out.printf("argmax agreement %d/%d, max |dp| = %.5f%n", argmaxAgree, cases.size(), worstProb);
         assertEquals("argmax agreement", cases.size(), argmaxAgree);
         assertTrue("probability drift " + worstProb, worstProb < 0.05);
+    }
+
+    /** The question with every ordering of its choice options (score/noul order is fixed). */
+    static List<Question> orderings(String id, JsonObject q) {
+        List<Question> out = new ArrayList<>();
+        Question base = question(id, q);
+        if (base.type != Question.Type.CHOICE) {
+            out.add(base);
+            return out;
+        }
+        List<String> keys = new ArrayList<>(base.choices.keySet());
+        permute(keys, 0, perm -> {
+            Map<String, String> m = new LinkedHashMap<>();
+            for (String k : perm) m.put(k, base.choices.get(k));
+            out.add(Question.choice(id, base.instructions, m));
+        });
+        return out;
+    }
+
+    private static void permute(List<String> a, int k, java.util.function.Consumer<List<String>> f) {
+        if (k == a.size()) {
+            f.accept(new ArrayList<>(a));
+            return;
+        }
+        for (int i = k; i < a.size(); i++) {
+            java.util.Collections.swap(a, k, i);
+            permute(a, k + 1, f);
+            java.util.Collections.swap(a, k, i);
+        }
     }
 
     static Question question(String id, JsonObject q) {

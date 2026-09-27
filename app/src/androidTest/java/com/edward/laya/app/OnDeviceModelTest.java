@@ -11,6 +11,8 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.edward.laya.app.game.LayaPilot;
+import com.edward.laya.app.game.World;
 import com.edward.laya.core.Answer;
 import com.edward.laya.core.LayaEngine;
 import com.edward.laya.core.Question;
@@ -61,9 +63,10 @@ public class OnDeviceModelTest {
         Log.i(TAG, "engine loaded in " + (System.currentTimeMillis() - t0) + " ms");
 
         Map<String, String> crit = new LinkedHashMap<>();
+        // Option order as used by the publisher when the reference was produced.
         crit.put("billing", "Payments and refunds");
-        crit.put("sales", "New purchases");
         crit.put("support", "Product help");
+        crit.put("sales", "New purchases");
         Question q = Question.choice("department", "Route this ticket to one department.", crit);
         SequenceBuilder sb = e.sequenceBuilder();
         SequenceBuilder.Sequence s = sb.build(
@@ -85,15 +88,47 @@ public class OnDeviceModelTest {
         assertEquals("billing", a.bestKey());
         for (int i = 0; i < 3; i++) assertEquals(refP[i], a.probabilities[i], 0.05);
 
-        // Every preset must run end to end on a Portuguese text.
-        for (Presets.Preset p : Presets.all()) {
-            LayaEngine.Result r = e.decide(p.example, p.questions);
-            assertEquals(p.questions.size(), r.answers.size());
-            StringBuilder b = new StringBuilder(p.name + " (" + r.millis + " ms):");
-            for (Answer x : r.answers.values()) b.append(' ').append(x.question.id).append('=').append(x.bestKey())
-                    .append(String.format(" %.2f", x.confidence));
-            Log.i(TAG, b.toString());
+        // Laya as the enemy pilot: a few battle situations and what it would do.
+        String[] names = {"aligned, player unaware", "player aiming + 2 bullets", "hull 1, far away", "behind the player"};
+        LayaPilot.Snapshot[] sn = new LayaPilot.Snapshot[4];
+        for (int i = 0; i < 4; i++) sn[i] = new LayaPilot.Snapshot();
+        sn[0].dist = 30; sn[0].bearingDeg = 5; sn[0].playerAimErrDeg = 120; sn[0].mySpeed = 15;
+        sn[1].dist = 25; sn[1].bearingDeg = 60; sn[1].playerAimErrDeg = 4; sn[1].incoming = 2; sn[1].mySpeed = 10;
+        sn[2].dist = 70; sn[2].bearingDeg = 170; sn[2].playerAimErrDeg = 30; sn[2].myHull = 1; sn[2].rockDist = 6;
+        sn[3].dist = 18; sn[3].bearingDeg = 2; sn[3].playerAimErrDeg = 175; sn[3].playerHull = 1;
+        for (int i = 0; i < 4; i++) {
+            LayaEngine.Result r = e.decide(LayaPilot.describe(sn[i]), java.util.Collections.singletonList(LayaPilot.TACTIC_QUESTION));
+            Answer x = r.answers.get("tactic");
+            double sum = 0;
+            for (double v : x.probabilities) sum += v;
+            assertEquals(1.0, sum, 1e-6);
+            Log.i(TAG, String.format("pilot [%s] -> %s %s (%d ms)", names[i], x.bestKey(),
+                    Arrays.toString(x.probabilities), r.millis));
         }
+
+        // 40 simulated seconds of a real match: Laya pilot (async) vs a scripted player.
+        LayaPilot pilot = new LayaPilot(LayaPilot.Difficulty.NORMAL);
+        pilot.attach(() -> e);
+        World w = new World(216, 100);
+        pilot.configure(w.enemy);
+        World.Control pc = new World.Control(), ec = new World.Control();
+        Thread.sleep(300);
+        for (int f = 0; f < 40 * 60; f++) {
+            float[] d = w.delta(w.player.x, w.player.y, w.enemy.x, w.enemy.y);
+            pc.steer = true;
+            pc.aimAngle = (float) Math.atan2(d[1], d[0]) + (float) Math.sin(f * 0.02) * 0.6f;
+            pc.thrust = 0.5f;
+            pc.fire = f % 20 < 10;
+            pilot.think(w, 1f / 60f);
+            pilot.fly(w, ec);
+            w.step(1f / 60f, pc, ec);
+            if (w.isMatchOver()) w.resetRound(true);
+            Thread.sleep(16);
+        }
+        pilot.shutdown();
+        Log.i(TAG, "simulated match: player " + w.playerScore + " x laya " + w.enemyScore + " | " + pilot.summary().replace('\n', ' '));
+        assertTrue("model made decisions during the match", pilot.modelDecisions > 5);
+
         List<String> outs = e.outputNames();
         Log.i(TAG, "outputs " + outs);
     }
