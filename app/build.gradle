@@ -47,7 +47,7 @@ android {
             // Desktop tokenizer natives bundled inside the DJL jar; Android uses tokenizer-native.
             excludes += ['native/**', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
         }
-        jniLibs { useLegacyPackaging false }
+        jniLibs { useLegacyPackaging true }   // compressed native libs: smaller APK to send around
     }
 
     lint {
