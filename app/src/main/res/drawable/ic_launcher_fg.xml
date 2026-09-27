@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three probability bars: the tallest one is the decision. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#5B5F6A" android:pathData="M36,58h9v14h-9z" />
+    <path android:fillColor="#C6F16D" android:pathData="M49.5,36h9v36h-9z" />
+    <path android:fillColor="#5B5F6A" android:pathData="M63,52h9v20h-9z" />
+</vector>

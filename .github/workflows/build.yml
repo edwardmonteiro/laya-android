@@ -1,0 +1,152 @@
+name: Build Laya Local
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: laya-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HF: https://huggingface.co/ti3x-m/laya-multilingual-onnx/resolve/main
+
+jobs:
+  model-parity:
+    name: Model parity (JVM, real int8 model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Cache model bundle
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/laya
+          key: laya-multilingual-int8-67d6997d-v1
+      - name: Download model bundle
+        run: |
+          set -euo pipefail
+          D="$RUNNER_TEMP/laya"; mkdir -p "$D"
+          get() { [ -s "$D/$2" ] || curl -fsSL --retry 5 -o "$D/$2" "$HF/$1"; }
+          get onnxruntime/wasm/int8-block-64/model.onnx model.onnx
+          get onnxruntime/wasm/int8-block-64/model.onnx_data model.onnx_data
+          get onnxruntime/wasm/int8-block-64/reference.json reference.json
+          get tokenizer/tokenizer.json tokenizer.json
+          get laya_config.json laya_config.json
+          cd "$D" && sha256sum model.onnx model.onnx_data tokenizer.json laya_config.json
+          cat > expected.sha <<'EOF'
+          f0e09e9672a2a233447c638350644388dc4eec198bf22667588d486f55a0250a  model.onnx
+          67d6997de3ebe0dba0c114793d2bdde22906013afbb6060f20e8051e64795532  model.onnx_data
+          609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f  tokenizer.json
+          b1a3dd900e0fd358d1adc325b4234f86b5026bb240ddf7191f7f102f63a1c450  laya_config.json
+          EOF
+          sed -i 's/^ *//' expected.sha && sha256sum -c expected.sha
+      - name: Sequence golden + model parity tests
+        env:
+          LAYA_MODEL_DIR: ${{ runner.temp }}/laya
+        run: gradle --no-daemon :laya-core:test
+      - name: Save test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laya-core-tests
+          path: laya-core/build/reports/tests/
+          if-no-files-found: ignore
+
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Build
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk out/Laya-Local.apk
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Laya-Local-APK
+          path: out/Laya-Local.apk
+          if-no-files-found: error
+      - name: Publish phone download (release "latest")
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest out/Laya-Local.apk \
+            --title "Laya Local (latest build)" \
+            --notes "Built from ${GITHUB_SHA::7}. Install Laya-Local.apk on the phone, open it and tap 'Baixar modelo'." \
+            --latest
+
+  device-test:
+    name: On-device test (emulator, in-app download + inference)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Build app and tests
+        run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 6000M
+          disable-animations: true
+          script: |
+            gradle --no-daemon :app:connectedDebugAndroidTest || (adb logcat -d -s LayaTest AndroidRuntime TestRunner > device-log.txt; exit 1)
+            adb logcat -d -s LayaTest > device-log.txt
+      - name: Show device log
+        if: always()
+        run: cat device-log.txt || true
+      - name: Save device reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laya-device-test
+          path: |
+            device-log.txt
+            app/build/reports/androidTests/
+          if-no-files-found: ignore

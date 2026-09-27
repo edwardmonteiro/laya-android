@@ -1,0 +1,26 @@
+plugins { id 'java-library' }
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    // Same ai.onnxruntime API as the Android AAR; the app supplies onnxruntime-android at runtime.
+    compileOnly "com.microsoft.onnxruntime:onnxruntime:${ortVersion}"
+    api "ai.djl.huggingface:tokenizers:${djlVersion}"
+    api 'com.google.code.gson:gson:2.11.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "com.microsoft.onnxruntime:onnxruntime:${ortVersion}"
+}
+
+test {
+    environment 'LAYA_MODEL_DIR', System.getenv('LAYA_MODEL_DIR') ?: ''
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+        exceptionFormat 'full'
+    }
+    maxHeapSize = '3g'
+}

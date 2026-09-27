@@ -1,0 +1,63 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.edward.laya.app'
+    compileSdk 36
+    buildToolsVersion '35.0.0'
+
+    defaultConfig {
+        applicationId 'com.edward.laya.local'
+        minSdk 31
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+    }
+
+    signingConfigs {
+        // Personal sideload key committed on purpose so every CI build installs as an update
+        // over the previous one. Not for Play Store distribution.
+        sideload {
+            storeFile file('laya-sideload.keystore')
+            storePassword 'layalocal'
+            keyAlias 'laya'
+            keyPassword 'layalocal'
+        }
+    }
+
+    buildTypes {
+        debug { signingConfig signingConfigs.sideload }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.sideload
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            // Desktop tokenizer natives bundled inside the DJL jar; Android uses tokenizer-native.
+            excludes += ['native/**', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
+        }
+        jniLibs { useLegacyPackaging false }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation project(':laya-core')
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:${ortVersion}"
+    implementation "ai.djl.android:tokenizer-native:${djlVersion}"
+
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}
