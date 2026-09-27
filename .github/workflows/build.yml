@@ -86,6 +86,8 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" | tee -a "$LOG"
           (yes || true) | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" > sdk.txt 2>&1 || { tail -20 sdk.txt | tee -a "$LOG"; exit 1; }
           echo "SDK ready" | tee -a "$LOG"
+      - name: Bundle the C++ runtime for the tokenizer
+        run: .github/add-libcxx.sh 2>&1 | tee -a "$LOG"
       - name: Build
         run: |
           set -o pipefail
@@ -128,6 +130,8 @@ jobs:
           gradle-version: '8.13'
       - name: Android SDK (preinstalled on the runner)
         run: (yes || true) | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" > /dev/null
+      - name: Bundle the C++ runtime for the tokenizer
+        run: .github/add-libcxx.sh 2>&1 | tee -a "$LOG"
       - name: Build app and tests
         run: |
           set -o pipefail

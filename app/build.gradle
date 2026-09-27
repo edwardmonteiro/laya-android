@@ -12,7 +12,6 @@ android {
         versionCode 1
         versionName '0.1.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        ndk { abiFilters 'arm64-v8a', 'x86_64' }
     }
 
     signingConfigs {
@@ -27,10 +26,14 @@ android {
     }
 
     buildTypes {
-        debug { signingConfig signingConfigs.sideload }
+        debug {
+            signingConfig signingConfigs.sideload
+            ndk { abiFilters 'arm64-v8a', 'x86_64' }   // x86_64 for the CI emulator
+        }
         release {
             minifyEnabled false
             signingConfig signingConfigs.sideload
+            ndk { abiFilters 'arm64-v8a' }             // phones only: smaller download
         }
     }
 
