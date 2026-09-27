@@ -42,19 +42,63 @@ public final class LayaPilot {
     public static final String[] TACTICS = {"attack", "flank", "evade", "retreat", "cover"};
     public static final String[] TACTIC_PT = {"atacar", "flanquear", "esquivar", "recuar", "cobertura"};
 
-    public static final Question TACTIC_QUESTION;
+    /** How the tactic question is put to Laya. Chosen by PilotEvalTest on labelled battle scenarios. */
+    public enum Prompt { ACTIONS, CONDITIONS, RULES, SITUATION }
 
-    static {
+    public static final Prompt DEFAULT_PROMPT = Prompt.CONDITIONS;
+    public static final Question TACTIC_QUESTION = question(DEFAULT_PROMPT);
+
+    /** Situations for Prompt.SITUATION, mapped to tactics by {@link #situationToTactics}. */
+    public static final String[] SITUATIONS = {"under_fire", "badly_damaged", "clear_shot", "player_exposed", "out_of_position"};
+
+    public static Question question(Prompt p) {
         Map<String, String> o = new LinkedHashMap<>();
-        o.put("attack", "chase the player and shoot when your nose is aligned");
-        o.put("flank", "circle around to get behind the player, out of their line of fire");
-        o.put("evade", "dodge sideways, out of the player's aim and away from incoming bullets");
-        o.put("retreat", "fly away to open distance and recover");
-        o.put("cover", "put an asteroid between you and the player");
-        TACTIC_QUESTION = Question.choice("tactic",
-                "You pilot the enemy ship in a space dogfight and must shoot down the player. "
-                        + "Choose your next maneuver.", o);
+        switch (p) {
+            case ACTIONS:
+                o.put("attack", "chase the player and shoot when your nose is aligned");
+                o.put("flank", "circle around to get behind the player, out of their line of fire");
+                o.put("evade", "dodge sideways, out of the player's aim and away from incoming bullets");
+                o.put("retreat", "fly away to open distance and recover");
+                o.put("cover", "put an asteroid between you and the player");
+                return Question.choice("tactic", "You pilot the enemy ship in a space dogfight and must shoot "
+                        + "down the player. Choose your next maneuver.", o);
+            case CONDITIONS:
+                o.put("attack", "the player is in front of your nose and is not aiming at you, or the player's hull is almost gone");
+                o.put("flank", "the player is close but facing away or turning, so you can get behind them");
+                o.put("evade", "bullets are about to hit you or the player is aiming right at you");
+                o.put("retreat", "your hull is 1 and the player's hull is higher, with no asteroid nearby");
+                o.put("cover", "your hull is low and an asteroid is near you");
+                return Question.choice("tactic", "Space dogfight. Which maneuver fits the battle report?", o);
+            case RULES:
+                o.put("attack", "rule: if the player is ahead and not aiming at you, attack");
+                o.put("flank", "rule: if the player is close and facing away, flank behind them");
+                o.put("evade", "rule: if bullets are coming or the player aims at you, evade");
+                o.put("retreat", "rule: if your hull is 1 and the player's hull is higher, retreat");
+                o.put("cover", "rule: if your hull is low and an asteroid is near, take cover");
+                return Question.choice("tactic", "Apply the one rule whose condition is true in the battle report.", o);
+            default:
+                o.put("under_fire", "the player is aiming at you or bullets are about to hit you");
+                o.put("badly_damaged", "your hull is 1 of 3 and the player's hull is higher");
+                o.put("clear_shot", "the player is straight ahead of your nose and is not aiming at you");
+                o.put("player_exposed", "the player is close and not aiming at you, but not straight ahead");
+                o.put("out_of_position", "the player is far away");
+                return Question.choice("tactic", "Space dogfight. Which situation describes the battle report?", o);
+        }
     }
+
+    /** Maps a SITUATION answer distribution onto the five tactics. */
+    public static float[] situationToTactics(double[] sp, Snapshot s) {
+        float[] p = new float[5];
+        p[2] += sp[0];                                   // under fire -> evade
+        if (s.rockDist < 15 || s.rockBetween) p[4] += sp[1]; else p[3] += sp[1];   // damaged -> cover / retreat
+        p[0] += sp[2];                                   // clear shot -> attack
+        p[1] += sp[3];                                   // exposed -> flank
+        p[0] += sp[4];                                   // far -> close in (attack)
+        return p;
+    }
+
+    private volatile Question activeQuestion = TACTIC_QUESTION;
+    private volatile Prompt activePrompt = DEFAULT_PROMPT;
 
     /** Immutable copy of the world taken on the game thread, read by the model thread. */
     public static final class Snapshot {
@@ -142,10 +186,9 @@ public final class LayaPilot {
         brainThread.execute(() -> {
             try {
                 String state = describe(s);
-                LayaEngine.Result r = e.decide(state, Collections.singletonList(TACTIC_QUESTION));
+                LayaEngine.Result r = e.decide(state, Collections.singletonList(activeQuestion));
                 Answer a = r.answers.get("tactic");
-                float[] p = new float[5];
-                for (int i = 0; i < 5; i++) p[i] = (float) a.probabilities[i];
+                float[] p = tacticProbs(activePrompt, a.probabilities, s);
                 applyDecision(p, r.millis, true);
             } catch (Throwable t) {
                 engineError = t.getClass().getSimpleName() + ": " + t.getMessage();
@@ -154,6 +197,19 @@ public final class LayaPilot {
                 inFlight.set(false);
             }
         });
+    }
+
+    /** Converts Laya's answer for the given prompt into tactic probabilities. */
+    public static float[] tacticProbs(Prompt prompt, double[] probabilities, Snapshot s) {
+        if (prompt == Prompt.SITUATION) return situationToTactics(probabilities, s);
+        float[] p = new float[5];
+        for (int i = 0; i < 5; i++) p[i] = (float) probabilities[i];
+        return p;
+    }
+
+    public void usePrompt(Prompt p) {
+        activePrompt = p;
+        activeQuestion = question(p);
     }
 
     private synchronized void applyDecision(float[] p, long latency, boolean fromModel) {
