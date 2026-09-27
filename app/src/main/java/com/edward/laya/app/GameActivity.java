@@ -14,6 +14,7 @@ public class GameActivity extends Activity {
 
     public static final String EXTRA_DIFFICULTY = "difficulty";
     public static final String EXTRA_USE_MODEL = "use_model";
+    public static final String EXTRA_PURE = "pure";
 
     private GameView view;
     private LayaPilot pilot;
@@ -25,6 +26,7 @@ public class GameActivity extends Activity {
         LayaPilot.Difficulty d = LayaPilot.Difficulty.values()[
                 getIntent().getIntExtra(EXTRA_DIFFICULTY, LayaPilot.Difficulty.NORMAL.ordinal())];
         pilot = new LayaPilot(d);
+        pilot.setPure(getIntent().getBooleanExtra(EXTRA_PURE, false));
         if (getIntent().getBooleanExtra(EXTRA_USE_MODEL, true) && ModelFiles.isReady(this)) {
             pilot.attach(() -> EngineHolder.get(getApplicationContext()));
         }

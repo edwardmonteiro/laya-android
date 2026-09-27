@@ -362,7 +362,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
         String src;
         if (pilot.usingModel()) {
             long ms = pilot.lastLatencyMs;
-            src = ms >= 0 ? String.format(Locale.US, "LAYA NO APARELHO · %d ms", ms) : "LAYA NO APARELHO";
+            String who = pilot.isPure() ? "LAYA PURO" : "LAYA + REGRAS";
+            src = ms >= 0 ? String.format(Locale.US, "%s · %d ms", who, ms) : who + " · carregando";
         } else if (pilot.engineError() != null) {
             src = "IA DE REGRAS (modelo falhou)";
         } else {

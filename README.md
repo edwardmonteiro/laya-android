@@ -10,6 +10,12 @@ pass, generating no text, and the enemy samples its tactic from them. A reflex l
 tactic every frame: steering, lead aiming, trigger and dodging rocks. The HUD shows Laya's live
 probabilities and latency. Without the model you can practise against a rule-based pilot.
 
+**Honest status:** zero-shot, Laya reads this battle report poorly. `PilotEvalTest` scores 14 hand-labelled
+situations. The best of four prompt formulations gets 5/14, while hand-written rules get 11/14. Laya's own
+docs say fine-tuning is where accuracy comes from. So by default the enemy uses **Laya + rules**: Laya's
+answer shifts a rule-based prior, a product of experts. "Laya puro" lets the raw model decide alone.
+The next step is fine-tuning Laya on simulated battles.
+
 ## Install on the phone
 
 1. Open **Releases → latest** on this repo from the phone and download `Laya.apk`.

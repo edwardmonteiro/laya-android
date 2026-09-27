@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
     private Button playBtn;
     private final Button[] diffBtns = new Button[3];
     private int difficulty = LayaPilot.Difficulty.NORMAL.ordinal();
+    private Switch pureSwitch;
 
     private boolean verifying;
 
@@ -214,6 +215,7 @@ public class MainActivity extends Activity {
         Intent i = new Intent(this, GameActivity.class);
         i.putExtra(GameActivity.EXTRA_DIFFICULTY, difficulty);
         i.putExtra(GameActivity.EXTRA_USE_MODEL, useModel);
+        i.putExtra(GameActivity.EXTRA_PURE, pureSwitch.isChecked());
         startActivity(i);
     }
 
@@ -271,6 +273,17 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
         pl.topMargin = dp(14);
         gameCard.addView(playBtn, pl);
+        pureSwitch = new Switch(this);
+        pureSwitch.setText("Laya puro (sem ajuda das regras)");
+        pureSwitch.setTextColor(ink);
+        pureSwitch.setChecked(getPreferences(MODE_PRIVATE).getBoolean("pure", false));
+        pureSwitch.setOnCheckedChangeListener((b, on) -> getPreferences(MODE_PRIVATE).edit().putBoolean("pure", on).apply());
+        LinearLayout.LayoutParams psl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        psl.topMargin = dp(8);
+        gameCard.addView(pureSwitch, psl);
+        TextView pureNote = text("Sem ajuste fino o Laya ainda lê mal a batalha (acerta 5 de 14 cenários de teste; as regras acertam 11). "
+                + "Por padrão ele joga junto com as regras e muda as chances de cada tática. No modo puro ele decide sozinho, e quase sempre ataca.", 12, muted, false);
+        gameCard.addView(pureNote);
         Button practice = secondary("Treinar contra IA de regras (sem modelo)");
         practice.setOnClickListener(v -> play(false));
         LinearLayout.LayoutParams prl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));

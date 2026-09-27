@@ -45,7 +45,7 @@ public final class LayaPilot {
     /** How the tactic question is put to Laya. Chosen by PilotEvalTest on labelled battle scenarios. */
     public enum Prompt { ACTIONS, CONDITIONS, RULES, SITUATION }
 
-    public static final Prompt DEFAULT_PROMPT = Prompt.CONDITIONS;
+    public static final Prompt DEFAULT_PROMPT = Prompt.SITUATION;
     public static final Question TACTIC_QUESTION = question(DEFAULT_PROMPT);
 
     /** Situations for Prompt.SITUATION, mapped to tactics by {@link #situationToTactics}. */
@@ -189,6 +189,7 @@ public final class LayaPilot {
                 LayaEngine.Result r = e.decide(state, Collections.singletonList(activeQuestion));
                 Answer a = r.answers.get("tactic");
                 float[] p = tacticProbs(activePrompt, a.probabilities, s);
+                if (!pure) p = blend(p, rulesProbs(s));
                 applyDecision(p, r.millis, true);
             } catch (Throwable t) {
                 engineError = t.getClass().getSimpleName() + ": " + t.getMessage();
@@ -205,6 +206,33 @@ public final class LayaPilot {
         float[] p = new float[5];
         for (int i = 0; i < 5; i++) p[i] = (float) probabilities[i];
         return p;
+    }
+
+    /**
+     * Product of experts: Laya's reading of the report (softened with a square root) times the
+     * rule-based prior. Zero-shot Laya is close to chance on this task (see PilotEvalTest), so on
+     * its own it mostly attacks; blended it shifts the odds instead of deciding alone.
+     */
+    public static float[] blend(float[] model, float[] rules) {
+        float[] p = new float[5];
+        float sum = 0;
+        for (int i = 0; i < 5; i++) {
+            p[i] = (float) Math.sqrt(Math.max(1e-6f, model[i])) * rules[i];
+            sum += p[i];
+        }
+        for (int i = 0; i < 5; i++) p[i] /= sum;
+        return p;
+    }
+
+    private volatile boolean pure;
+
+    /** true = Laya alone decides (no rule prior). */
+    public void setPure(boolean pure) {
+        this.pure = pure;
+    }
+
+    public boolean isPure() {
+        return pure;
     }
 
     public void usePrompt(Prompt p) {

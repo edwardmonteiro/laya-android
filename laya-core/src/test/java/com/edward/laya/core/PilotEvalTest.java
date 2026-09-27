@@ -96,6 +96,20 @@ public class PilotEvalTest {
                 System.out.printf(Locale.US, "PROMPT %-10s accuracy %d/%d  picks %s  avg %d ms%n%s", prompt, right,
                         cases.size(), java.util.Arrays.toString(picks), ms / cases.size(), detail);
             }
+            // What the game ships by default: Laya (default prompt) blended with the rules.
+            {
+                Question q = LayaPilot.question(LayaPilot.DEFAULT_PROMPT);
+                int right = 0;
+                for (Case c : cases) {
+                    LayaEngine.Result r = e.decide(LayaPilot.describe(c.s), Collections.singletonList(q));
+                    float[] p = LayaPilot.blend(LayaPilot.tacticProbs(LayaPilot.DEFAULT_PROMPT,
+                            r.answers.get("tactic").probabilities, c.s), LayaPilot.rulesProbs(c.s));
+                    int best = 0;
+                    for (int i = 1; i < 5; i++) if (p[i] > p[best]) best = i;
+                    if (c.ok.contains(best)) right++;
+                }
+                System.out.printf("BLEND %s+rules accuracy %d/%d%n", LayaPilot.DEFAULT_PROMPT, right, cases.size());
+            }
             // Baseline: the hand-written rules on the same cases.
             int right = 0;
             for (Case c : cases) {
