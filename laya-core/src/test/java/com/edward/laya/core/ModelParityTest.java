@@ -57,18 +57,10 @@ public class ModelParityTest {
                 long[] refMarkers = row(feeds.getAsJsonArray("marker_pos"));
 
                 // reference.json stores criteria with sorted keys, but the feeds were built with the
-                // original option order. Find the option order whose sequence reproduces the feeds:
-                // the real tokenizer must match one ordering token for token.
-                Question q = null;
-                SequenceBuilder.Sequence s = null;
-                for (Question cand : orderings(id, c.getAsJsonObject("question"))) {
-                    SequenceBuilder.Sequence cs = sb.build(sb.stateIds(state), cand, cal.maxLen, cal.headMaxLen);
-                    if (s == null || Arrays.equals(refIds, cs.ids)) {
-                        q = cand;
-                        s = cs;
-                        if (Arrays.equals(refIds, cs.ids)) break;
-                    }
-                }
+                // original option order. Recover that order from the feeds: the tokens after each
+                // [MASK] marker must be the tokenization of exactly one option.
+                Question q = inFeedOrder(id, c.getAsJsonObject("question"), refIds, refMarkers, engine.tokenizer());
+                SequenceBuilder.Sequence s = sb.build(sb.stateIds(state), q, cal.maxLen, cal.headMaxLen);
                 if (!Arrays.equals(refIds, s.ids)) {
                     System.out.println(id + "\n  ref " + Arrays.toString(refIds) + "\n  got " + Arrays.toString(s.ids));
                 }
@@ -91,33 +83,40 @@ public class ModelParityTest {
         assertTrue("probability drift " + worstProb, worstProb < 0.05);
     }
 
-    /** The question with every ordering of its choice options (score/noul order is fixed). */
-    static List<Question> orderings(String id, JsonObject q) {
-        List<Question> out = new ArrayList<>();
+    /** Reorders a choice question's options to match the marker segments in the reference feeds. */
+    static Question inFeedOrder(String id, JsonObject q, long[] ids, long[] markers, TokenIds tok) {
         Question base = question(id, q);
-        if (base.type != Question.Type.CHOICE) {
-            out.add(base);
-            return out;
-        }
+        if (base.type != Question.Type.CHOICE) return base;
         List<String> keys = new ArrayList<>(base.choices.keySet());
-        permute(keys, 0, perm -> {
-            Map<String, String> m = new LinkedHashMap<>();
-            for (String k : perm) m.put(k, base.choices.get(k));
-            out.add(Question.choice(id, base.instructions, m));
-        });
-        return out;
+        List<String> rendered = base.renderOptions();
+        List<long[]> optTokens = new ArrayList<>();
+        for (String r : rendered) optTokens.add(tok.encode(" " + r.replace("<mask>", " ")));
+        boolean[] used = new boolean[keys.size()];
+        Map<String, String> ordered = new LinkedHashMap<>();
+        for (int m = 0; m < markers.length; m++) {
+            int from = (int) markers[m] + 1;
+            int to = m + 1 < markers.length ? (int) markers[m + 1] : indexOf(ids, 1L, from);
+            long[] seg = Arrays.copyOfRange(ids, from, to);
+            int pick = -1;
+            for (int k = 0; k < keys.size() && pick < 0; k++) {
+                if (!used[k] && startsWith(optTokens.get(k), seg)) pick = k;
+            }
+            if (pick < 0) throw new AssertionError(id + ": no option matches marker segment " + m + " " + Arrays.toString(seg));
+            used[pick] = true;
+            ordered.put(keys.get(pick), base.choices.get(keys.get(pick)));
+        }
+        return Question.choice(id, base.instructions, ordered);
     }
 
-    private static void permute(List<String> a, int k, java.util.function.Consumer<List<String>> f) {
-        if (k == a.size()) {
-            f.accept(new ArrayList<>(a));
-            return;
-        }
-        for (int i = k; i < a.size(); i++) {
-            java.util.Collections.swap(a, k, i);
-            permute(a, k + 1, f);
-            java.util.Collections.swap(a, k, i);
-        }
+    private static int indexOf(long[] a, long v, int from) {
+        for (int i = from; i < a.length; i++) if (a[i] == v) return i;
+        return a.length;
+    }
+
+    private static boolean startsWith(long[] full, long[] prefix) {
+        if (prefix.length > full.length) return false;
+        for (int i = 0; i < prefix.length; i++) if (full[i] != prefix[i]) return false;
+        return true;
     }
 
     static Question question(String id, JsonObject q) {

@@ -99,9 +99,9 @@ public class OnDeviceModelTest {
         for (int i = 0; i < 4; i++) {
             LayaEngine.Result r = e.decide(LayaPilot.describe(sn[i]), java.util.Collections.singletonList(LayaPilot.TACTIC_QUESTION));
             Answer x = r.answers.get("tactic");
-            double sum = 0;
-            for (double v : x.probabilities) sum += v;
-            assertEquals(1.0, sum, 1e-6);
+            double total = 0;
+            for (double v : x.probabilities) total += v;
+            assertEquals(1.0, total, 1e-6);
             Log.i(TAG, String.format("pilot [%s] -> %s %s (%d ms)", names[i], x.bestKey(),
                     Arrays.toString(x.probabilities), r.millis));
         }
@@ -114,9 +114,9 @@ public class OnDeviceModelTest {
         World.Control pc = new World.Control(), ec = new World.Control();
         Thread.sleep(300);
         for (int f = 0; f < 40 * 60; f++) {
-            float[] d = w.delta(w.player.x, w.player.y, w.enemy.x, w.enemy.y);
+            float[] rel = w.delta(w.player.x, w.player.y, w.enemy.x, w.enemy.y);
             pc.steer = true;
-            pc.aimAngle = (float) Math.atan2(d[1], d[0]) + (float) Math.sin(f * 0.02) * 0.6f;
+            pc.aimAngle = (float) Math.atan2(rel[1], rel[0]) + (float) Math.sin(f * 0.02) * 0.6f;
             pc.thrust = 0.5f;
             pc.fire = f % 20 < 10;
             pilot.think(w, 1f / 60f);

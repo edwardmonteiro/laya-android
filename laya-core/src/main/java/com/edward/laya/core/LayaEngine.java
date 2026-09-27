@@ -97,6 +97,10 @@ public final class LayaEngine implements AutoCloseable {
         return calibration;
     }
 
+    public TokenIds tokenizer() {
+        return tokenizer;
+    }
+
     public SequenceBuilder sequenceBuilder() {
         return builder;
     }
