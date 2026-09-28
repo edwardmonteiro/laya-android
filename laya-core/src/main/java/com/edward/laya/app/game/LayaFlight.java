@@ -41,7 +41,28 @@ public final class LayaFlight {
     static final Question COMBINED;
     static final Question Q_BULLETS = Question.noul("bullets", "Are bullets about to hit you?");
     static final Question Q_ALIGNED = Question.noul("aligned", "Is the player exactly in front of your nose?");
-    static final Question Q_STEER;
+    public static final Question Q_STEER;
+
+    /** Single yes/no probes used by FlightEvalTest to see which facts Laya can read. */
+    public static final Question[] PROBES = {
+            Question.noul("p", "Are bullets about to hit you?"),
+            Question.noul("p", "Are bullets about to hit you?", "the sky around you is quiet", "bullets are about to hit you"),
+            Question.noul("p", "Is the sky around you quiet, with no bullets?"),
+            Question.noul("p", "Is the player exactly in front of your nose?",
+                    "the player is on one of your sides or behind you", "the player is exactly in front of your nose"),
+            Question.noul("p", "Is the player far away?")
+    };
+    public static final String[] PROBE_NAMES = {"bullets (plain)", "bullets (descriptive)", "quiet sky (inverted)",
+            "aligned (descriptive)", "far away (plain)"};
+
+    public static boolean probeTruth(int probe, LayaPilot.Snapshot s) {
+        switch (probe) {
+            case 0: case 1: return s.incoming > 0;
+            case 2: return s.incoming == 0;
+            case 3: return Math.abs(s.bearingDeg) < 7;
+            default: return s.dist > 55;
+        }
+    }
     static final Question Q_BULLETS_P = Question.noul("bullets", "Are bullets about to hit you?",
             "the sky around you is quiet", "bullets are about to hit you");
     static final Question Q_ALIGNED_P = Question.noul("aligned", "Is the player exactly in front of your nose?",
