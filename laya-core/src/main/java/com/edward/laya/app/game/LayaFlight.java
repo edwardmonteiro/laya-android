@@ -29,7 +29,11 @@ public final class LayaFlight {
         /** One choice question over the five maneuvers, reading only what matters for flying. */
         COMBINED_FOCUSED,
         /** Three simple questions (yes/no bullets, yes/no aligned, left/straight/right). */
-        SPLIT
+        SPLIT,
+        /** Like COMBINED_FOCUSED, but the description only states what is true (no negations). */
+        COMBINED_POSITIVE,
+        /** Like SPLIT, positive-only description and descriptive yes/no options. */
+        SPLIT_POSITIVE
     }
 
     public static final Style DEFAULT_STYLE = Style.SPLIT;
@@ -38,6 +42,10 @@ public final class LayaFlight {
     static final Question Q_BULLETS = Question.noul("bullets", "Are bullets about to hit you?");
     static final Question Q_ALIGNED = Question.noul("aligned", "Is the player exactly in front of your nose?");
     static final Question Q_STEER;
+    static final Question Q_BULLETS_P = Question.noul("bullets", "Are bullets about to hit you?",
+            "the sky around you is quiet", "bullets are about to hit you");
+    static final Question Q_ALIGNED_P = Question.noul("aligned", "Is the player exactly in front of your nose?",
+            "the player is on one of your sides or behind you", "the player is exactly in front of your nose");
 
     static {
         Map<String, String> o = new LinkedHashMap<>();
@@ -67,6 +75,19 @@ public final class LayaFlight {
         b.append(". The player is ").append(s.dist < 22 ? "close" : s.dist < 45 ? "at medium distance" : "far away").append(". ");
         b.append(s.incoming == 0 ? "No bullets are coming at you."
                 : s.incoming == 1 ? "A bullet is about to hit you." : s.incoming + " bullets are about to hit you.");
+        return b.toString();
+    }
+
+    /** Only true statements, no negations: zero-shot Laya matches words and misses "no"/"not". */
+    public static String describePositive(LayaPilot.Snapshot s) {
+        StringBuilder b = new StringBuilder();
+        if (s.incoming > 0) b.append("Bullets are about to hit you. ");
+        float br = s.bearingDeg, ab = Math.abs(br);
+        String side = br < 0 ? "left" : "right";
+        if (ab < 7) b.append("The player is exactly in front of your nose.");
+        else if (ab < 135) b.append("The player is on your ").append(side).append(" side.");
+        else b.append("The player is behind you, on your ").append(side).append(" side.");
+        if (s.dist > 55) b.append(" The player is far away.");
         return b.toString();
     }
 
@@ -102,8 +123,10 @@ public final class LayaFlight {
     public static Decision decide(LayaEngine e, LayaPilot.Snapshot s, Style style) throws Exception {
         switch (style) {
             case COMBINED_FULL:
-            case COMBINED_FOCUSED: {
-                String state = style == Style.COMBINED_FULL ? LayaPilot.describe(s) : describeFocused(s);
+            case COMBINED_FOCUSED:
+            case COMBINED_POSITIVE: {
+                String state = style == Style.COMBINED_FULL ? LayaPilot.describe(s)
+                        : style == Style.COMBINED_POSITIVE ? describePositive(s) : describeFocused(s);
                 LayaEngine.Result r = e.decide(state, java.util.Collections.singletonList(COMBINED));
                 double[] p = r.answers.get("maneuver").probabilities;
                 float[] f = new float[5];
@@ -111,8 +134,10 @@ public final class LayaFlight {
                 return new Decision(f, r.millis, "");
             }
             default: {
-                List<Question> qs = new ArrayList<>(Arrays.asList(Q_BULLETS, Q_ALIGNED, Q_STEER));
-                LayaEngine.Result r = e.decide(describeFocused(s), qs);
+                boolean pos = style == Style.SPLIT_POSITIVE;
+                List<Question> qs = new ArrayList<>(Arrays.asList(pos ? Q_BULLETS_P : Q_BULLETS,
+                        pos ? Q_ALIGNED_P : Q_ALIGNED, Q_STEER));
+                LayaEngine.Result r = e.decide(pos ? describePositive(s) : describeFocused(s), qs);
                 Answer bullets = r.answers.get("bullets"), aligned = r.answers.get("aligned"), steer = r.answers.get("steer");
                 double pb = bullets.value, pa = aligned.value;
                 double[] st = steer.probabilities;   // left, straight, right
