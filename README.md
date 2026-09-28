@@ -10,11 +10,20 @@ pass, generating no text, and the enemy samples its tactic from them. A reflex l
 tactic every frame: steering, lead aiming, trigger and dodging rocks. The HUD shows Laya's live
 probabilities and latency. Without the model you can practise against a rule-based pilot.
 
-**Honest status:** zero-shot, Laya reads this battle report poorly. `PilotEvalTest` scores 14 hand-labelled
-situations. The best of four prompt formulations gets 5/14, while hand-written rules get 11/14. Laya's own
-docs say fine-tuning is where accuracy comes from. So by default the enemy uses **Laya + rules**: Laya's
-answer shifts a rule-based prior, a product of experts. "Laya puro" lets the raw model decide alone.
-The next step is fine-tuning Laya on simulated battles.
+**Three pilot modes** (menu → "Quem pilota o inimigo"):
+
+- **Laya piloto** (default): every control is a Laya answer. The game only describes what the ship sees,
+  then asks two questions per decision: yes/no "Are bullets about to hit you?" and "Where is the player
+  compared with your nose?" (left, straight or right). Straight means fire. There are no rules and no aim assist.
+  `FlightEvalTest`: **80/80** sensible controls on seeded random situations, ~260 ms per decision on a
+  2-core CI runner.
+- **Laya tático**: Laya picks a tactic and an autopilot flies it. Zero-shot, Laya reads the full battle
+  report poorly here: 5/14 on `PilotEvalTest`, where hand-written rules get 11/14.
+- **Laya + regras**: Laya's tactic reading reweights a rule-based prior.
+
+What made the difference: zero-shot Laya ignores negations. "No bullets are coming" still got ~0.9 on
+"bullets?". A description that states only what is true, plus plain yes/no and left/straight/right
+questions, fixed it.
 
 ## Install on the phone
 
