@@ -129,6 +129,38 @@ public class OnDeviceModelTest {
         Log.i(TAG, "simulated match: player " + w.playerScore + " x laya " + w.enemyScore + " | " + pilot.summary().replace('\n', ' '));
         assertTrue("model made decisions during the match", pilot.modelDecisions > 5);
 
+        // Laya piloto: the model gives every control for 30 simulated seconds.
+        LayaPilot flyer = new LayaPilot(LayaPilot.Difficulty.NORMAL);
+        flyer.setMode(LayaPilot.Mode.FLIGHT);
+        flyer.attach(() -> e);
+        World fw = new World(216, 100);
+        flyer.configure(fw.enemy);
+        Thread.sleep(300);
+        for (int f = 0; f < 30 * 60; f++) {
+            float[] rel = fw.delta(fw.player.x, fw.player.y, fw.enemy.x, fw.enemy.y);
+            pc.steer = true;
+            pc.aimAngle = (float) Math.atan2(rel[1], rel[0]) + (float) Math.sin(f * 0.02) * 0.8f;
+            pc.thrust = 0.4f;
+            pc.fire = f % 30 < 8;
+            flyer.think(fw, 1f / 60f);
+            flyer.fly(fw, ec);
+            fw.step(1f / 60f, pc, ec);
+            if (fw.isMatchOver()) fw.resetRound(true);
+            Thread.sleep(16);
+        }
+        flyer.shutdown();
+        Log.i(TAG, "laya piloto match: player " + fw.playerScore + " x laya " + fw.enemyScore + " | "
+                + flyer.summary().replace('\n', ' '));
+        assertTrue("Laya piloto made decisions", flyer.modelDecisions > 5);
+
+        // And the real game screen in Laya piloto mode, with the model loaded.
+        android.content.Intent gi = new android.content.Intent(c, GameActivity.class);
+        gi.putExtra(GameActivity.EXTRA_MODE, LayaPilot.Mode.FLIGHT.ordinal());
+        try (androidx.test.core.app.ActivityScenario<GameActivity> sc = androidx.test.core.app.ActivityScenario.launch(gi)) {
+            Thread.sleep(12000);
+            assertEquals(androidx.lifecycle.Lifecycle.State.RESUMED, sc.getState());
+        }
+
         List<String> outs = e.outputNames();
         Log.i(TAG, "outputs " + outs);
     }

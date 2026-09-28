@@ -362,20 +362,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
         String src;
         if (pilot.usingModel()) {
             long ms = pilot.lastLatencyMs;
-            String who = pilot.isPure() ? "LAYA PURO" : "LAYA + REGRAS";
+            String who = pilot.mode() == LayaPilot.Mode.FLIGHT ? "LAYA PILOTO"
+                    : pilot.isPure() ? "LAYA TÁTICO" : "LAYA + REGRAS";
             src = ms >= 0 ? String.format(Locale.US, "%s · %d ms", who, ms) : who + " · carregando";
         } else if (pilot.engineError() != null) {
             src = "IA DE REGRAS (modelo falhou)";
+        } else if (pilot.mode() == LayaPilot.Mode.FLIGHT) {
+            src = "LAYA PILOTO · carregando";
         } else {
             src = "IA DE REGRAS";
         }
         c.drawText(src, px, py, text);
-        float[] p = pilot.probs;
-        int t = pilot.tactic;
+        boolean flight = pilot.mode() == LayaPilot.Mode.FLIGHT;
+        float[] p = flight ? pilot.flightProbs : pilot.probs;
+        int t = flight ? pilot.maneuver : pilot.tactic;
+        String[] names = flight ? LayaFlight.MANEUVER_PT : LayaPilot.TACTIC_PT;
         for (int i = 0; i < 5; i++) {
             float y = py + (2.2f + i * 2.6f) * u;
             text.setColor(i == t ? INK : MUTED);
-            c.drawText(LayaPilot.TACTIC_PT[i], px, y + 0.8f * u, text);
+            c.drawText(names[i], px, y + 0.8f * u, text);
             float bx = px + 11 * u, bw = pw - 11 * u - 5 * u;
             fill.setColor(0x22FFFFFF);
             c.drawRoundRect(new RectF(bx, y - 0.4f * u, bx + bw, y + 0.6f * u), 0.5f * u, 0.5f * u, fill);
@@ -384,6 +389,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
             text.setTextAlign(Paint.Align.RIGHT);
             c.drawText(Math.round(p[i] * 100) + "%", px + pw, y + 0.8f * u, text);
             text.setTextAlign(Paint.Align.LEFT);
+        }
+        if (flight && !pilot.flightDetail.isEmpty()) {
+            text.setColor(MUTED);
+            text.setTextSize(2.1f * u);
+            c.drawText(pilot.flightDetail, px, py + 15.6f * u, text);
         }
 
         if (world.eventTimer > 0 && !matchOver) {
@@ -415,7 +425,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
             c.drawText(world.playerScore + " – " + world.enemyScore, W / 2, H * 0.47f, text);
             text.setTextSize(2.8f * u);
             text.setColor(MUTED);
-            String[] lines = ("Táticas do Laya: " + pilot.summary()).split("\n");
+            String sum = pilot.mode() == LayaPilot.Mode.FLIGHT ? pilot.summary() : "Táticas do Laya: " + pilot.summary();
+            String[] lines = sum.split("\n");
             for (int i = 0; i < lines.length; i++) c.drawText(lines[i], W / 2, H * 0.58f + i * 4 * u, text);
             text.setColor(INK);
             text.setTextSize(3.4f * u);

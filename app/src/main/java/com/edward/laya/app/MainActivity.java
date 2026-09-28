@@ -48,7 +48,15 @@ public class MainActivity extends Activity {
     private Button playBtn;
     private final Button[] diffBtns = new Button[3];
     private int difficulty = LayaPilot.Difficulty.NORMAL.ordinal();
-    private Switch pureSwitch;
+    private static final LayaPilot.Mode[] MODE_ORDER = {LayaPilot.Mode.FLIGHT, LayaPilot.Mode.TACTIC, LayaPilot.Mode.BLEND};
+    private static final String[] MODE_LABEL = {"Laya piloto", "Laya tático", "Laya + regras"};
+    private static final String[] MODE_NOTE = {
+            "Cada comando da nave inimiga (virar, atirar, esquivar, avançar) é uma resposta do Laya. O jogo só descreve o que a nave vê e cuida da física: sem regras e sem mira automática.",
+            "O Laya escolhe a tática (atacar, flanquear, esquivar…) e um piloto automático mira e atira. Sem ajuste fino ele quase sempre escolhe atacar.",
+            "A leitura do Laya muda as chances das táticas sugeridas por regras escritas à mão, e um piloto automático executa."};
+    private final Button[] modeBtns = new Button[3];
+    private int modeIdx;
+    private TextView modeNote;
 
     private boolean verifying;
 
@@ -215,8 +223,25 @@ public class MainActivity extends Activity {
         Intent i = new Intent(this, GameActivity.class);
         i.putExtra(GameActivity.EXTRA_DIFFICULTY, difficulty);
         i.putExtra(GameActivity.EXTRA_USE_MODEL, useModel);
-        i.putExtra(GameActivity.EXTRA_PURE, pureSwitch.isChecked());
+        i.putExtra(GameActivity.EXTRA_MODE, MODE_ORDER[modeIdx].ordinal());
         startActivity(i);
+    }
+
+    private void selectMode(int m) {
+        modeIdx = Math.max(0, Math.min(MODE_ORDER.length - 1, m));
+        getPreferences(MODE_PRIVATE).edit().putInt("modeIdx", modeIdx).apply();
+        for (int i = 0; i < modeBtns.length; i++) {
+            boolean on = i == modeIdx;
+            modeBtns[i].setBackground(on ? round(accent, dp(22)) : stroke());
+            modeBtns[i].setTextColor(on ? accentInk : ink);
+        }
+        modeNote.setText(MODE_NOTE[modeIdx]);
+    }
+
+    private LinearLayout.LayoutParams withTop(int top) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = top;
+        return lp;
     }
 
     private void selectDifficulty(int d) {
@@ -246,7 +271,7 @@ public class MainActivity extends Activity {
         sub.setLetterSpacing(0.3f);
         root.addView(sub);
         TextView tag = text("Um modelo de decisão rodando no seu celular pilota a nave inimiga. "
-                + "A cada instante ele lê a batalha e escolhe a tática, com probabilidade calibrada. Vença-o.", 15, muted, false);
+                + "No modo piloto, cada comando da nave vem de uma resposta do modelo, com probabilidade calibrada. Vença-o.", 15, muted, false);
         tag.setPadding(0, dp(10), 0, dp(20));
         root.addView(tag);
 
@@ -273,17 +298,25 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
         pl.topMargin = dp(14);
         gameCard.addView(playBtn, pl);
-        pureSwitch = new Switch(this);
-        pureSwitch.setText("Laya puro (sem ajuda das regras)");
-        pureSwitch.setTextColor(ink);
-        pureSwitch.setChecked(getPreferences(MODE_PRIVATE).getBoolean("pure", false));
-        pureSwitch.setOnCheckedChangeListener((b, on) -> getPreferences(MODE_PRIVATE).edit().putBoolean("pure", on).apply());
-        LinearLayout.LayoutParams psl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        psl.topMargin = dp(8);
-        gameCard.addView(pureSwitch, psl);
-        TextView pureNote = text("Sem ajuste fino o Laya ainda lê mal a batalha (acerta 5 de 14 cenários de teste; as regras acertam 11). "
-                + "Por padrão ele joga junto com as regras e muda as chances de cada tática. No modo puro ele decide sozinho, e quase sempre ataca.", 12, muted, false);
-        gameCard.addView(pureNote);
+        gameCard.addView(kicker("QUEM PILOTA O INIMIGO"), withTop(dp(14)));
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < MODE_ORDER.length; i++) {
+            final int idx = i;
+            Button mb = new Button(this);
+            mb.setText(MODE_LABEL[i]);
+            mb.setAllCaps(false);
+            mb.setOnClickListener(v -> selectMode(idx));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+            if (i < MODE_ORDER.length - 1) lp.setMarginEnd(dp(8));
+            modeRow.addView(mb, lp);
+            modeBtns[i] = mb;
+        }
+        gameCard.addView(modeRow);
+        modeNote = text("", 12, muted, false);
+        modeNote.setPadding(0, dp(8), 0, 0);
+        gameCard.addView(modeNote);
+        selectMode(getPreferences(MODE_PRIVATE).getInt("modeIdx", 0));
         Button practice = secondary("Treinar contra IA de regras (sem modelo)");
         practice.setOnClickListener(v -> play(false));
         LinearLayout.LayoutParams prl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));

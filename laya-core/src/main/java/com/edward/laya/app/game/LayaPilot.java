@@ -173,6 +173,10 @@ public final class LayaPilot {
 
     /** Called every frame on the game thread. */
     public void think(World w, float dt) {
+        if (mode == Mode.FLIGHT) {
+            thinkFlight(w, dt);
+            return;
+        }
         sinceDecision += dt;
         if (sinceDecision < holdFor || !w.enemy.alive || w.respawnTimer > 0) return;
         Snapshot s = snapshot(w);
@@ -200,6 +204,37 @@ public final class LayaPilot {
         });
     }
 
+    /** Laya flies: every control comes from the model, asked again as soon as it answers. */
+    private void thinkFlight(World w, float dt) {
+        maneuverHeld += dt;
+        LayaEngine e = engine;
+        if (e == null || !w.enemy.alive || w.respawnTimer > 0) return;
+        if (!inFlight.compareAndSet(false, true)) return;
+        Snapshot s = snapshot(w);
+        brainThread.execute(() -> {
+            try {
+                LayaFlight.Decision d = LayaFlight.decide(e, s, LayaFlight.DEFAULT_STYLE);
+                int m = d.best();
+                if (m == LayaFlight.DODGE && maneuver != LayaFlight.DODGE) dodgeSide = rnd.nextBoolean() ? 1f : -1f;
+                if (m != maneuver || m == LayaFlight.LEFT || m == LayaFlight.RIGHT) maneuverHeld = 0;
+                maneuver = m;
+                flightProbs = d.probs;
+                flightDetail = d.detail;
+                lastFromModel = true;
+                lastLatencyMs = d.millis;
+                totalLatency += d.millis;
+                modelDecisions++;
+                maneuverCounts[m]++;
+            } catch (Throwable t) {
+                engineError = t.getClass().getSimpleName() + ": " + t.getMessage();
+            } finally {
+                inFlight.set(false);
+            }
+        });
+    }
+
+    public final int[] maneuverCounts = new int[5];
+
     /** Converts Laya's answer for the given prompt into tactic probabilities. */
     public static float[] tacticProbs(Prompt prompt, double[] probabilities, Snapshot s) {
         if (prompt == Prompt.SITUATION) return situationToTactics(probabilities, s);
@@ -225,6 +260,25 @@ public final class LayaPilot {
     }
 
     private volatile boolean pure;
+
+    /** How much of the flying Laya does. */
+    public enum Mode { BLEND, TACTIC, FLIGHT }
+
+    private volatile Mode mode = Mode.BLEND;
+    public volatile int maneuver = LayaFlight.THRUST;
+    public volatile float[] flightProbs = {0.2f, 0.2f, 0.2f, 0.2f, 0.2f};
+    public volatile String flightDetail = "";
+    private volatile float maneuverHeld;
+    private volatile float dodgeSide = 1f;
+
+    public void setMode(Mode m) {
+        this.mode = m;
+        this.pure = m == Mode.TACTIC;
+    }
+
+    public Mode mode() {
+        return mode;
+    }
 
     /** true = Laya alone decides (no rule prior). */
     public void setPure(boolean pure) {
@@ -358,6 +412,16 @@ public final class LayaPilot {
 
     /** Called every frame: fly the current tactic. */
     public void fly(World w, World.Control c) {
+        if (mode == Mode.FLIGHT) {
+            if (engine == null) {   // model still loading: coast
+                c.steer = false;
+                c.thrust = 0;
+                c.fire = false;
+                return;
+            }
+            LayaFlight.apply(maneuver, maneuverHeld, w, c, dodgeSide);
+            return;
+        }
         World.Ship me = w.enemy, pl = w.player;
         c.steer = false;
         c.thrust = 0;
@@ -456,6 +520,19 @@ public final class LayaPilot {
     }
 
     public String summary() {
+        if (mode == Mode.FLIGHT) {
+            int total = 0;
+            for (int n : maneuverCounts) total += n;
+            StringBuilder b = new StringBuilder("Comandos do Laya: ");
+            for (int i = 0; i < 5; i++) {
+                if (maneuverCounts[i] == 0) continue;
+                b.append(LayaFlight.MANEUVER_PT[i]).append(' ')
+                        .append(Math.round(100f * maneuverCounts[i] / Math.max(1, total))).append("%  ");
+            }
+            if (modelDecisions > 0) b.append(String.format(Locale.US, "\n%d decisões do modelo · média %d ms",
+                    modelDecisions, totalLatency / modelDecisions));
+            return b.toString();
+        }
         int total = 0;
         for (int n : tacticCounts) total += n;
         StringBuilder b = new StringBuilder();

@@ -33,10 +33,14 @@ public final class LayaFlight {
         /** Like COMBINED_FOCUSED, but the description only states what is true (no negations). */
         COMBINED_POSITIVE,
         /** Like SPLIT, positive-only description and descriptive yes/no options. */
-        SPLIT_POSITIVE
+        SPLIT_POSITIVE,
+        /** Positive-only description; plain yes/no bullets, plain yes/no aligned, left/straight/right. */
+        SPLIT_PLAIN,
+        /** Positive-only description; plain yes/no bullets + left/straight/right (straight = fire). 2 passes. */
+        DUO
     }
 
-    public static final Style DEFAULT_STYLE = Style.SPLIT;
+    public static final Style DEFAULT_STYLE = Style.DUO;
 
     static final Question COMBINED;
     static final Question Q_BULLETS = Question.noul("bullets", "Are bullets about to hit you?");
@@ -50,16 +54,17 @@ public final class LayaFlight {
             Question.noul("p", "Is the sky around you quiet, with no bullets?"),
             Question.noul("p", "Is the player exactly in front of your nose?",
                     "the player is on one of your sides or behind you", "the player is exactly in front of your nose"),
-            Question.noul("p", "Is the player far away?")
+            Question.noul("p", "Is the player far away?"),
+            Question.noul("p", "Is the player exactly in front of your nose?")
     };
     public static final String[] PROBE_NAMES = {"bullets (plain)", "bullets (descriptive)", "quiet sky (inverted)",
-            "aligned (descriptive)", "far away (plain)"};
+            "aligned (descriptive)", "far away (plain)", "aligned (plain)"};
 
     public static boolean probeTruth(int probe, LayaPilot.Snapshot s) {
         switch (probe) {
             case 0: case 1: return s.incoming > 0;
             case 2: return s.incoming == 0;
-            case 3: return Math.abs(s.bearingDeg) < 7;
+            case 3: case 5: return Math.abs(s.bearingDeg) < 7;
             default: return s.dist > 55;
         }
     }
@@ -154,11 +159,26 @@ public final class LayaFlight {
                 for (int i = 0; i < 5; i++) f[i] = (float) p[i];
                 return new Decision(f, r.millis, "");
             }
+            case DUO: {
+                LayaEngine.Result r = e.decide(describePositive(s), Arrays.asList(Q_BULLETS, Q_STEER));
+                double pb = r.answers.get("bullets").value;
+                double[] st = r.answers.get("steer").probabilities;   // left, straight, right
+                float[] f = new float[5];
+                f[DODGE] = (float) pb;
+                double rest = 1 - pb;
+                f[LEFT] = (float) (rest * st[0]);
+                f[FIRE] = (float) (rest * st[1]);
+                f[RIGHT] = (float) (rest * st[2]);
+                String d = String.format(Locale.US, "tiros %.0f%% · esq %.0f%% · frente %.0f%% · dir %.0f%%",
+                        pb * 100, st[0] * 100, st[1] * 100, st[2] * 100);
+                return new Decision(f, r.millis, d);
+            }
             default: {
                 boolean pos = style == Style.SPLIT_POSITIVE;
+                boolean plain = style == Style.SPLIT_PLAIN;
                 List<Question> qs = new ArrayList<>(Arrays.asList(pos ? Q_BULLETS_P : Q_BULLETS,
                         pos ? Q_ALIGNED_P : Q_ALIGNED, Q_STEER));
-                LayaEngine.Result r = e.decide(pos ? describePositive(s) : describeFocused(s), qs);
+                LayaEngine.Result r = e.decide(pos || plain ? describePositive(s) : describeFocused(s), qs);
                 Answer bullets = r.answers.get("bullets"), aligned = r.answers.get("aligned"), steer = r.answers.get("steer");
                 double pb = bullets.value, pa = aligned.value;
                 double[] st = steer.probabilities;   // left, straight, right
@@ -188,14 +208,15 @@ public final class LayaFlight {
             case LEFT:
             case RIGHT:
                 // Turn in short bursts so one decision cannot spin the ship around.
-                if (heldFor < 0.22f) {
+                if (heldFor < 0.14f) {
                     c.steer = true;
                     c.aimAngle = me.angle + (maneuver == LEFT ? -1.5f : 1.5f);
                 }
                 c.thrust = 0.35f;
                 break;
-            case FIRE:
+            case FIRE:   // fire while easing forward
                 c.fire = true;
+                c.thrust = 0.3f;
                 break;
             case THRUST:
                 c.thrust = 1f;
