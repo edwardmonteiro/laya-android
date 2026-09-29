@@ -142,7 +142,10 @@ public final class PerceptionActivity extends AppCompatActivity {
                         .build();
                 analysis.setAnalyzer(analysisExecutor, new SignalAnalyzer(result -> runOnUiThread(() -> {
                     hudView.setVision(result.trafficState, result.brakeLights, result.visionConfidence);
-                    statusView.setText("LOCAL • câmera + sensores • experimental");
+                    hudView.setRoad(result.roadState);
+                    statusView.setText(String.format(Locale.US,
+                            "LOCAL • lane %.0f%% • experimental",
+                            result.roadState.confidence * 100f));
                 })));
 
                 provider.unbindAll();
@@ -195,11 +198,14 @@ public final class PerceptionActivity extends AppCompatActivity {
         final String trafficState;
         final boolean brakeLights;
         final float visionConfidence;
+        final RoadGeometryDetector.RoadState roadState;
 
-        VisionResult(String trafficState, boolean brakeLights, float visionConfidence) {
+        VisionResult(String trafficState, boolean brakeLights, float visionConfidence,
+                     RoadGeometryDetector.RoadState roadState) {
             this.trafficState = trafficState;
             this.brakeLights = brakeLights;
             this.visionConfidence = visionConfidence;
+            this.roadState = roadState;
         }
     }
 
@@ -212,6 +218,9 @@ public final class PerceptionActivity extends AppCompatActivity {
         private int yellowPersist;
         private int greenPersist;
         private int brakePersist;
+        private final RoadGeometryDetector roadDetector = new RoadGeometryDetector();
+        private RoadGeometryDetector.RoadState smoothedRoad =
+                new RoadGeometryDetector.RoadState(0.18f, 0.82f, 0.43f, 0.57f, 0f);
 
         SignalAnalyzer(VisionListener listener) { this.listener = listener; }
 
@@ -227,6 +236,9 @@ public final class PerceptionActivity extends AppCompatActivity {
                 int pixelStride = planes[0].getPixelStride();
                 int w = image.getWidth();
                 int h = image.getHeight();
+
+                RoadGeometryDetector.RoadState rawRoad = roadDetector.estimate(image);
+                smoothedRoad = smoothRoad(smoothedRoad, rawRoad);
 
                 int red = 0, yellow = 0, green = 0;
                 int brakeLeft = 0, brakeRight = 0;
@@ -279,10 +291,26 @@ public final class PerceptionActivity extends AppCompatActivity {
                 if (greenPersist >= 2 && greenRate > best) { traffic = "VERDE"; best = greenRate; }
 
                 float confidence = Math.min(0.99f, best * 90f + (traffic.equals("—") ? 0f : 0.35f));
-                listener.onVision(new VisionResult(traffic, brakePersist >= 2, confidence));
+                listener.onVision(new VisionResult(traffic, brakePersist >= 2, confidence, smoothedRoad));
             } finally {
                 image.close();
             }
+        }
+
+        private static RoadGeometryDetector.RoadState smoothRoad(
+                RoadGeometryDetector.RoadState previous,
+                RoadGeometryDetector.RoadState current) {
+            float a = current.confidence >= 0.45f ? 0.30f : 0.12f;
+            return new RoadGeometryDetector.RoadState(
+                    lerp(previous.leftNear, current.leftNear, a),
+                    lerp(previous.rightNear, current.rightNear, a),
+                    lerp(previous.leftFar, current.leftFar, a),
+                    lerp(previous.rightFar, current.rightFar, a),
+                    lerp(previous.confidence, current.confidence, 0.22f));
+        }
+
+        private static float lerp(float a, float b, float t) {
+            return a + (b - a) * t;
         }
 
         private static int updatePersist(int value, boolean hit) {
@@ -299,6 +327,8 @@ public final class PerceptionActivity extends AppCompatActivity {
         private boolean brakeLights;
         private String traffic = "—";
         private float visionConfidence;
+        private RoadGeometryDetector.RoadState road =
+                new RoadGeometryDetector.RoadState(0.18f, 0.82f, 0.43f, 0.57f, 0f);
 
         HudView(Context context) {
             super(context);
@@ -315,6 +345,11 @@ public final class PerceptionActivity extends AppCompatActivity {
             invalidate();
         }
 
+        void setRoad(RoadGeometryDetector.RoadState road) {
+            if (road != null) this.road = road;
+            invalidate();
+        }
+
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
@@ -322,6 +357,8 @@ public final class PerceptionActivity extends AppCompatActivity {
             int h = getHeight();
             float cx = w / 2f;
             float cy = h / 2f;
+
+            drawLaneOverlay(canvas, w, h);
 
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(3f);
@@ -370,6 +407,64 @@ public final class PerceptionActivity extends AppCompatActivity {
             paint.setColor(0xDDFFFFFF);
             paint.setTextSize(14f);
             canvas.drawText("DISTÂNCIA: calibração experimental", cx, h - 34, paint);
+        }
+
+        private void drawLaneOverlay(Canvas canvas, int w, int h) {
+            float farY = h * 0.55f;
+            float nearY = h * 0.96f;
+            float lFar = road.leftFar * w;
+            float rFar = road.rightFar * w;
+            float lNear = road.leftNear * w;
+            float rNear = road.rightNear * w;
+
+            // Corridor fill. Alpha follows confidence so uncertain detection never looks authoritative.
+            int fillAlpha = (int)(22 + 54 * Math.max(0f, Math.min(1f, road.confidence)));
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor((fillAlpha << 24) | 0x0000E5FF);
+            android.graphics.Path area = new android.graphics.Path();
+            area.moveTo(lFar, farY);
+            area.lineTo(rFar, farY);
+            area.lineTo(rNear, nearY);
+            area.lineTo(lNear, nearY);
+            area.close();
+            canvas.drawPath(area, paint);
+
+            // Actual detected lane boundaries. Dashed when confidence is low.
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(8f);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(road.confidence >= 0.35f ? 0xEE00E5FF : 0x8890A4AE);
+            if (road.confidence < 0.35f) {
+                paint.setPathEffect(new android.graphics.DashPathEffect(new float[]{22f, 16f}, 0f));
+            } else {
+                paint.setPathEffect(null);
+            }
+
+            android.graphics.Path left = new android.graphics.Path();
+            left.moveTo(lNear, nearY);
+            left.cubicTo(
+                    lNear * 0.88f + lFar * 0.12f, h * 0.82f,
+                    lNear * 0.35f + lFar * 0.65f, h * 0.66f,
+                    lFar, farY);
+            canvas.drawPath(left, paint);
+
+            android.graphics.Path right = new android.graphics.Path();
+            right.moveTo(rNear, nearY);
+            right.cubicTo(
+                    rNear * 0.88f + rFar * 0.12f, h * 0.82f,
+                    rNear * 0.35f + rFar * 0.65f, h * 0.66f,
+                    rFar, farY);
+            canvas.drawPath(right, paint);
+            paint.setPathEffect(null);
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setFakeBoldText(true);
+            paint.setTextSize(15f);
+            paint.setColor(0xEEFFFFFF);
+            canvas.drawText(String.format(Locale.US, "LANE %.0f%%", road.confidence * 100f),
+                    w * 0.5f, h * 0.91f, paint);
+            paint.setFakeBoldText(false);
         }
 
         private static int trafficColor(String traffic) {
