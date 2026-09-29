@@ -1,0 +1,250 @@
+model.onnx: OK
+model.onnx_data: OK
+tokenizer.json: OK
+laya_config.json: OK
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :laya-core:compileJava
+> Task :laya-core:processResources NO-SOURCE
+> Task :laya-core:classes
+> Task :laya-core:compileTestJava
+> Task :laya-core:processTestResources
+> Task :laya-core:testClasses
+
+> Task :laya-core:test
+
+FlightEvalTest > compareFlightStyles STANDARD_ERROR
+    SLF4J(W): No SLF4J providers were found.
+    SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+    SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+
+[0;93m2026-09-29 02:25:55.790294102 [W:onnxruntime:ort-java, device_discovery.cc:146 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+
+> Task :laya-core:test
+
+FlightEvalTest > compareFlightStyles STANDARD_OUT
+    PROBE bullets (plain)              meanP(true)=0.940 (n=13) meanP(false)=0.057 (n=67) AUC=1.000
+    PROBE bullets (descriptive)        meanP(true)=0.976 (n=13) meanP(false)=0.903 (n=67) AUC=1.000
+    PROBE quiet sky (inverted)         meanP(true)=0.160 (n=67) meanP(false)=0.451 (n=13) AUC=0.005
+    PROBE aligned (descriptive)        meanP(true)=0.618 (n=16) meanP(false)=0.222 (n=64) AUC=0.785
+    PROBE far away (plain)             meanP(true)=0.962 (n=35) meanP(false)=0.208 (n=45) AUC=1.000
+    PROBE aligned (plain)              meanP(true)=0.517 (n=16) meanP(false)=0.142 (n=64) AUC=0.500
+    PROBE steer left-vs-right 41/41
+    FLIGHT COMBINED_FULL    accuracy 25/80  picks [0, 0, 80, 0, 0]  avg 319 ms  by-class: turn_left 6/33  turn_right 7/22  fire 12/12  dodge 0/13  
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your right. The player is close. No bullets -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your right side. The player is  -> fire 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is to your left. The player is close. No bullets  -> fire 
+          BAD The player is to your right. The player is close. A bullet i -> fire 
+          BAD The player is to your right. The player is at medium distanc -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is to your left. The player is close. No bullets  -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your right. The player is far away. No bull -> fire 
+          BAD The player is to your right. The player is at medium distanc -> fire 
+    FLIGHT COMBINED_FOCUSED accuracy 12/80  picks [0, 0, 25, 0, 55]  avg 235 ms  by-class: turn_left 0/33  turn_right 0/22  fire 12/12  dodge 0/13  
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your right. The player is close. No bullets -> dodge 
+          BAD The player is to your left. The player is far away. No bulle -> dodge 
+          BAD The player is behind you, on your right side. The player is  -> dodge 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> dodge 
+          BAD The player is behind you, on your left side. The player is f -> dodge 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is slightly to your right. The player is far away -> dodge 
+          BAD The player is to your left. The player is close. No bullets  -> dodge 
+          BAD The player is slightly to your left. The player is far away. -> dodge 
+          BAD The player is to your right. The player is close. A bullet i -> fire 
+          BAD The player is to your right. The player is at medium distanc -> dodge 
+          BAD The player is slightly to your right. The player is far away -> dodge 
+          BAD The player is behind you, on your left side. The player is f -> dodge 
+          BAD The player is slightly to your left. The player is far away. -> dodge 
+          BAD The player is to your left. The player is far away. No bulle -> dodge 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is slightly to your right. The player is at mediu -> dodge 
+    FLIGHT SPLIT            accuracy 13/80  picks [0, 0, 0, 0, 80]  avg 451 ms  by-class: turn_left 0/33  turn_right 0/22  fire 0/12  dodge 13/13  
+          BAD The player is to your right. The player is close. No bullets -> dodge tiros 78% · alinhado 41%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 79% · alinhado 26%
+          BAD The player is behind you, on your right side. The player is  -> dodge tiros 59% · alinhado 26%
+          BAD The player is exactly in front of your nose. The player is f -> dodge tiros 71% · alinhado 87%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 79% · alinhado 26%
+          BAD The player is behind you, on your left side. The player is f -> dodge tiros 45% · alinhado 26%
+          BAD The player is exactly in front of your nose. The player is f -> dodge tiros 71% · alinhado 87%
+          BAD The player is slightly to your right. The player is far away -> dodge tiros 75% · alinhado 34%
+          BAD The player is to your left. The player is close. No bullets  -> dodge tiros 77% · alinhado 30%
+          BAD The player is slightly to your left. The player is far away. -> dodge tiros 73% · alinhado 39%
+          BAD The player is to your right. The player is at medium distanc -> dodge tiros 87% · alinhado 31%
+          BAD The player is slightly to your right. The player is far away -> dodge tiros 75% · alinhado 34%
+          BAD The player is behind you, on your left side. The player is f -> dodge tiros 45% · alinhado 26%
+          BAD The player is slightly to your left. The player is far away. -> dodge tiros 73% · alinhado 39%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 79% · alinhado 26%
+    FLIGHT COMBINED_POSITIVE accuracy 25/80  picks [0, 0, 80, 0, 0]  avg 223 ms  by-class: turn_left 6/33  turn_right 7/22  fire 12/12  dodge 0/13  
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your right. The player is close. No bullets -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your right side. The player is  -> fire 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. A bullet -> fire 
+          BAD The player is to your left. The player is close. No bullets  -> fire 
+          BAD The player is to your right. The player is close. A bullet i -> fire 
+          BAD The player is to your right. The player is at medium distanc -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your left. The player is far away. No bulle -> fire 
+          BAD The player is to your left. The player is close. No bullets  -> fire 
+          BAD The player is behind you, on your left side. The player is f -> fire 
+          BAD The player is to your right. The player is far away. No bull -> fire 
+          BAD The player is to your right. The player is at medium distanc -> fire 
+    FLIGHT SPLIT_POSITIVE   accuracy 13/80  picks [0, 0, 0, 0, 80]  avg 425 ms  by-class: turn_left 0/33  turn_right 0/22  fire 0/12  dodge 13/13  
+          BAD The player is to your right. The player is close. No bullets -> dodge tiros 93% · alinhado 47%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 92% · alinhado 3%
+          BAD The player is behind you, on your right side. The player is  -> dodge tiros 87% · alinhado 6%
+          BAD The player is exactly in front of your nose. The player is f -> dodge tiros 88% · alinhado 3%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 92% · alinhado 3%
+          BAD The player is behind you, on your left side. The player is f -> dodge tiros 85% · alinhado 2%
+          BAD The player is exactly in front of your nose. The player is f -> dodge tiros 92% · alinhado 98%
+          BAD The player is slightly to your right. The player is far away -> dodge tiros 92% · alinhado 3%
+          BAD The player is to your left. The player is close. No bullets  -> dodge tiros 89% · alinhado 34%
+          BAD The player is slightly to your left. The player is far away. -> dodge tiros 92% · alinhado 3%
+          BAD The player is to your right. The player is at medium distanc -> dodge tiros 93% · alinhado 47%
+          BAD The player is slightly to your right. The player is far away -> dodge tiros 92% · alinhado 3%
+          BAD The player is behind you, on your left side. The player is f -> dodge tiros 85% · alinhado 2%
+          BAD The player is slightly to your left. The player is far away. -> dodge tiros 89% · alinhado 34%
+          BAD The player is to your left. The player is far away. No bulle -> dodge tiros 92% · alinhado 3%
+    FLIGHT SPLIT_PLAIN      accuracy 80/80  picks [31, 24, 8, 4, 13]  avg 401 ms  by-class: turn_left 33/33  turn_right 22/22  fire 12/12  dodge 13/13  
+    FLIGHT DUO              accuracy 80/80  picks [31, 24, 12, 0, 13]  avg 271 ms  by-class: turn_left 33/33  turn_right 22/22  fire 12/12  dodge 13/13  
+
+FlightEvalTest > compareFlightStyles PASSED
+
+ModelParityTest > int8BundleMatchesReference STANDARD_OUT
+    outputs: [logits, act_probs]
+    state-0-department           ref=[0.9628, 0.0119, 0.0253] got=[0.9625, 0.0115, 0.0261]
+    state-0-urgency              ref=[0.1711, 0.3573, 0.4716] got=[0.1723, 0.3621, 0.4656]
+    state-0-churn_risk           ref=[0.9970, 0.0030] got=[0.9971, 0.0029]
+    state-1-department           ref=[0.1141, 0.7811, 0.1048] got=[0.1129, 0.7817, 0.1054]
+    state-1-urgency              ref=[0.2226, 0.6171, 0.1602] got=[0.2028, 0.6258, 0.1713]
+    state-1-churn_risk           ref=[0.9929, 0.0071] got=[0.9927, 0.0073]
+    state-2-department           ref=[0.0278, 0.8971, 0.0751] got=[0.0277, 0.8930, 0.0794]
+    state-2-urgency              ref=[0.0460, 0.5245, 0.4295] got=[0.0454, 0.5310, 0.4236]
+    state-2-churn_risk           ref=[0.6052, 0.3948] got=[0.6125, 0.3875]
+    state-3-department           ref=[0.0570, 0.8795, 0.0635] got=[0.0573, 0.8798, 0.0629]
+    state-3-urgency              ref=[0.3241, 0.3453, 0.3306] got=[0.3253, 0.3440, 0.3307]
+    state-3-churn_risk           ref=[0.2181, 0.7819] got=[0.2137, 0.7863]
+    state-4-department           ref=[0.1878, 0.4200, 0.3922] got=[0.1908, 0.4202, 0.3891]
+    state-4-urgency              ref=[0.1588, 0.6183, 0.2229] got=[0.1555, 0.6206, 0.2239]
+    state-4-churn_risk           ref=[0.9888, 0.0112] got=[0.9888, 0.0112]
+    state-5-department           ref=[0.0006, 0.0014, 0.9980] got=[0.0005, 0.0014, 0.9981]
+    state-5-urgency              ref=[0.2015, 0.6696, 0.1289] got=[0.1987, 0.6743, 0.1270]
+    state-5-churn_risk           ref=[0.9841, 0.0159] got=[0.9843, 0.0157]
+    state-6-department           ref=[0.9998, 0.0001, 0.0001] got=[0.9998, 0.0001, 0.0001]
+    state-6-urgency              ref=[0.0485, 0.4320, 0.5195] got=[0.0487, 0.4427, 0.5086]
+    state-6-churn_risk           ref=[0.9922, 0.0078] got=[0.9923, 0.0077]
+    state-7-department           ref=[0.9995, 0.0003, 0.0002] got=[0.9995, 0.0003, 0.0002]
+    state-7-urgency              ref=[0.0625, 0.4574, 0.4801] got=[0.0649, 0.4541, 0.4810]
+    state-7-churn_risk           ref=[0.9808, 0.0192] got=[0.9812, 0.0188]
+    state-8-department           ref=[0.9477, 0.0406, 0.0117] got=[0.9455, 0.0422, 0.0123]
+    state-8-urgency              ref=[0.2417, 0.4240, 0.3343] got=[0.2466, 0.4262, 0.3271]
+    state-8-churn_risk           ref=[0.8451, 0.1549] got=[0.8570, 0.1430]
+    state-9-department           ref=[0.3988, 0.3181, 0.2831] got=[0.4128, 0.3134, 0.2738]
+    state-9-urgency              ref=[0.1189, 0.4775, 0.4036] got=[0.1180, 0.4797, 0.4023]
+    state-9-churn_risk           ref=[0.9645, 0.0355] got=[0.9670, 0.0330]
+    choice-2                     ref=[0.9992, 0.0008] got=[0.9992, 0.0008]
+    choice-5                     ref=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000] got=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000]
+    choice-8                     ref=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000] got=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]
+    choice-12                    ref=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000] got=[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]
+    argmax agreement 34/34, max |dp| = 0.01977
+
+ModelParityTest > int8BundleMatchesReference PASSED
+
+PilotEvalTest > comparePrompts STANDARD_OUT
+    PROMPT ACTIONS    accuracy 4/14  picks [14, 0, 0, 0, 0]  avg 342 ms
+        ok  clear shot, player unaware             -> attack   [0.79 0.04 0.12 0.04 0.01]
+        ok  clear shot, player almost dead         -> attack   [0.81 0.04 0.11 0.04 0.01]
+        ok  far away, nothing happening            -> attack   [0.69 0.03 0.20 0.06 0.01]
+        BAD two bullets incoming                   -> attack   [0.86 0.02 0.08 0.03 0.01]
+        BAD one bullet incoming, close             -> attack   [0.83 0.02 0.10 0.04 0.01]
+        BAD player aiming right at me              -> attack   [0.73 0.04 0.17 0.04 0.02]
+        BAD player behind me and aiming            -> attack   [0.72 0.04 0.19 0.04 0.02]
+        ok  close, player facing away, to my side  -> attack   [0.64 0.04 0.23 0.07 0.02]
+        BAD close, player turning, beside me       -> attack   [0.61 0.04 0.26 0.07 0.02]
+        BAD hull 1 vs 3, open space                -> attack   [0.66 0.04 0.21 0.07 0.02]
+        BAD hull 1 vs 2, far, not aimed at         -> attack   [0.66 0.04 0.22 0.06 0.02]
+        BAD hull 1, asteroid very near             -> attack   [0.82 0.02 0.09 0.05 0.02]
+        BAD hull 1, asteroid between us            -> attack   [0.87 0.03 0.06 0.03 0.02]
+        BAD hull 2, rock near, player aiming       -> attack   [0.83 0.02 0.09 0.04 0.02]
+    PROMPT CONDITIONS accuracy 3/14  picks [3, 0, 11, 0, 0]  avg 374 ms
+        BAD clear shot, player unaware             -> evade    [0.37 0.05 0.49 0.04 0.06]
+        BAD clear shot, player almost dead         -> evade    [0.39 0.05 0.47 0.03 0.05]
+        BAD far away, nothing happening            -> evade    [0.23 0.03 0.63 0.05 0.06]
+        BAD two bullets incoming                   -> attack   [0.58 0.05 0.24 0.06 0.08]
+        BAD one bullet incoming, close             -> attack   [0.59 0.07 0.18 0.06 0.10]
+        ok  player aiming right at me              -> evade    [0.13 0.05 0.65 0.07 0.10]
+        ok  player behind me and aiming            -> evade    [0.18 0.08 0.59 0.05 0.11]
+        BAD close, player facing away, to my side  -> evade    [0.23 0.05 0.60 0.04 0.08]
+        BAD close, player turning, beside me       -> evade    [0.22 0.06 0.61 0.04 0.06]
+        BAD hull 1 vs 3, open space                -> evade    [0.23 0.06 0.56 0.06 0.10]
+        BAD hull 1 vs 2, far, not aimed at         -> evade    [0.29 0.04 0.59 0.03 0.05]
+        BAD hull 1, asteroid very near             -> evade    [0.35 0.05 0.46 0.04 0.09]
+        BAD hull 1, asteroid between us            -> attack   [0.67 0.02 0.27 0.01 0.02]
+        ok  hull 2, rock near, player aiming       -> evade    [0.35 0.05 0.47 0.05 0.08]
+    PROMPT RULES      accuracy 5/14  picks [0, 0, 14, 0, 0]  avg 361 ms
+        BAD clear shot, player unaware             -> evade    [0.19 0.06 0.57 0.05 0.13]
+        BAD clear shot, player almost dead         -> evade    [0.20 0.07 0.53 0.06 0.15]
+        BAD far away, nothing happening            -> evade    [0.12 0.05 0.64 0.08 0.11]
+        ok  two bullets incoming                   -> evade    [0.34 0.05 0.35 0.08 0.19]
+        ok  one bullet incoming, close             -> evade    [0.41 0.05 0.41 0.05 0.08]
+        ok  player aiming right at me              -> evade    [0.07 0.04 0.68 0.08 0.12]
+        ok  player behind me and aiming            -> evade    [0.13 0.11 0.60 0.06 0.10]
+        BAD close, player facing away, to my side  -> evade    [0.15 0.07 0.60 0.06 0.12]
+        BAD close, player turning, beside me       -> evade    [0.17 0.08 0.53 0.07 0.15]
+        BAD hull 1 vs 3, open space                -> evade    [0.12 0.07 0.47 0.08 0.25]
+        BAD hull 1 vs 2, far, not aimed at         -> evade    [0.20 0.06 0.53 0.06 0.14]
+        BAD hull 1, asteroid very near             -> evade    [0.25 0.05 0.32 0.08 0.29]
+        BAD hull 1, asteroid between us            -> evade    [0.35 0.05 0.35 0.06 0.19]
+        ok  hull 2, rock near, player aiming       -> evade    [0.18 0.06 0.48 0.09 0.19]
+    PROMPT SITUATION  accuracy 5/14  picks [13, 0, 1, 0, 0]  avg 355 ms
+        ok  clear shot, player unaware             -> attack   [0.74 0.04 0.19 0.03 0.00]
+        ok  clear shot, player almost dead         -> attack   [0.70 0.06 0.20 0.04 0.00]
+        ok  far away, nothing happening            -> attack   [0.68 0.05 0.24 0.03 0.00]
+        ok  two bullets incoming                   -> evade    [0.37 0.12 0.44 0.07 0.00]
+        BAD one bullet incoming, close             -> attack   [0.44 0.09 0.42 0.05 0.00]
+        BAD player aiming right at me              -> attack   [0.63 0.06 0.27 0.04 0.00]
+        BAD player behind me and aiming            -> attack   [0.55 0.07 0.32 0.06 0.00]
+        ok  close, player facing away, to my side  -> attack   [0.63 0.05 0.28 0.04 0.00]
+        BAD close, player turning, beside me       -> attack   [0.58 0.06 0.30 0.05 0.00]
+        BAD hull 1 vs 3, open space                -> attack   [0.61 0.08 0.26 0.06 0.00]
+        BAD hull 1 vs 2, far, not aimed at         -> attack   [0.61 0.06 0.29 0.05 0.00]
+        BAD hull 1, asteroid very near             -> attack   [0.52 0.10 0.29 0.00 0.08]
+        BAD hull 1, asteroid between us            -> attack   [0.69 0.07 0.18 0.00 0.05]
+        BAD hull 2, rock near, player aiming       -> attack   [0.49 0.10 0.31 0.00 0.09]
+    BLEND SITUATION+rules accuracy 9/14
+    BASELINE rules accuracy 11/14
+
+PilotEvalTest > comparePrompts PASSED
+
+SequenceGoldenTest > calibrationClampsLikeLaya PASSED
+
+SequenceGoldenTest > matchesPythonReference PASSED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1790648745529.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/laya-android/laya-android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 5m 8s
+4 actionable tasks: 4 executed
