@@ -1,0 +1,256 @@
+Using NDK at /usr/local/lib/android/sdk/ndk/27.3.13750724
+-rwxr-xr-x 1 runner runner 1794776 Sep 29 02:25 app/src/main/jniLibs/arm64-v8a/libc++_shared.so
+-rwxr-xr-x 1 runner runner 1617608 Sep 29 02:25 app/src/main/jniLibs/x86_64/libc++_shared.so
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :laya-core:compileJava
+> Task :laya-core:processResources NO-SOURCE
+> Task :laya-core:classes
+> Task :laya-core:jar
+> Task :app:javaPreCompileDebug
+> Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:mergeDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:compressDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:checkDebugDuplicateClasses
+> Task :app:processDebugResources
+> Task :app:mergeDebugJavaResource
+
+> Task :app:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics
+> Task :app:mergeExtDexDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeLibDexDebug
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:javaPreCompileDebugAndroidTest
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:checkDebugAndroidTestAarMetadata
+> Task :app:generateDebugAndroidTestResValues
+> Task :app:mapDebugAndroidTestSourceSetPaths
+> Task :app:generateDebugAndroidTestResources
+> Task :app:mergeDebugAndroidTestResources
+> Task :app:processDebugAndroidTestManifest
+> Task :app:mergeDebugNativeLibs
+> Task :app:mergeDebugAndroidTestShaders
+> Task :app:compileDebugAndroidTestShaders NO-SOURCE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets
+> Task :app:compressDebugAndroidTestAssets
+> Task :app:desugarDebugAndroidTestFileDependencies
+> Task :app:processDebugAndroidTestJavaRes NO-SOURCE
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libc++_shared.so, libdjl_tokenizer.so, libonnxruntime.so, libonnxruntime4j_jni.so. Run with --info option to learn more.
+
+> Task :app:processDebugAndroidTestResources
+> Task :app:mergeDebugAndroidTestJavaResource
+> Task :app:compileDebugAndroidTestJavaWithJavac
+> Task :app:dexBuilderDebugAndroidTest
+> Task :app:mergeDebugAndroidTestGlobalSynthetics
+> Task :app:checkDebugAndroidTestDuplicateClasses
+> Task :app:mergeDebugAndroidTestJniLibFolders
+> Task :app:mergeLibDexDebugAndroidTest
+> Task :app:mergeProjectDexDebugAndroidTest
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebugAndroidTest
+> Task :app:writeDebugAndroidTestSigningConfigVersions
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :app:mergeExtDexDebugAndroidTest
+> Task :app:packageDebugAndroidTest
+> Task :app:createDebugAndroidTestApkListingFileRedirect
+> Task :app:assembleDebugAndroidTest
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1790648749808.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/laya-android/laya-android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 21s
+62 actionable tasks: 62 executed
+== gradle
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :laya-core:compileJava UP-TO-DATE
+> Task :laya-core:processResources NO-SOURCE
+> Task :laya-core:classes UP-TO-DATE
+> Task :laya-core:jar UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestResources UP-TO-DATE
+> Task :app:compileDebugAndroidTestJavaWithJavac UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebug UP-TO-DATE
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:mergeDebugAndroidTestShaders UP-TO-DATE
+> Task :app:compileDebugAndroidTestShaders NO-SOURCE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :app:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugAndroidTestJavaRes NO-SOURCE
+> Task :app:mergeDebugAndroidTestJavaResource UP-TO-DATE
+> Task :app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLibDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeProjectDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:packageDebugAndroidTest UP-TO-DATE
+> Task :app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+[EmulatorConsole]: Failed to start Emulator console for 5554
+
+> Task :app:connectedDebugAndroidTest
+Starting 5 tests on emulator-5554 - 14
+
+emulator-5554 - 14 Tests 0/5 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/5 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 3/5 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/5 completed. (0 skipped) (0 failed)
+Finished 5 tests on emulator-5554 - 14
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__reactivecircus_android-emulator-runner-1790648872698.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/laya-android/laya-android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 5m 15s
+63 actionable tasks: 1 executed, 62 up-to-date
+== logcat
+--------- beginning of main
+09-29 02:28:29.560  4595  4632 I TestRunner: run started: 5 tests
+09-29 02:28:29.561  4595  4632 I TestRunner: started: gameRunsWithRules(com.edward.laya.app.GameLaunchTest)
+09-29 02:28:55.591  4595  4632 I TestRunner: finished: gameRunsWithRules(com.edward.laya.app.GameLaunchTest)
+09-29 02:28:55.594  4595  4632 I TestRunner: started: menuOpens(com.edward.laya.app.GameLaunchTest)
+09-29 02:28:58.265  4595  4632 I TestRunner: finished: menuOpens(com.edward.laya.app.GameLaunchTest)
+09-29 02:28:58.267  4595  4632 I TestRunner: started: gameRunsWithLaya(com.edward.laya.app.GameLaunchTest)
+09-29 02:29:13.031  4595  4632 I TestRunner: finished: gameRunsWithLaya(com.edward.laya.app.GameLaunchTest)
+09-29 02:29:13.082  4595  4632 I TestRunner: started: tanksRunWithRules(com.edward.laya.app.GameLaunchTest)
+09-29 02:29:29.631  4595  4632 I TestRunner: finished: tanksRunWithRules(com.edward.laya.app.GameLaunchTest)
+09-29 02:29:29.677  4595  4632 I TestRunner: started: downloadVerifyAndDecide(com.edward.laya.app.OnDeviceModelTest)
+09-29 02:29:31.768  4595  4632 I LayaTest: downloaded 0 / 652043651
+09-29 02:29:34.921  4595  4632 I LayaTest: downloaded 201042 / 652043651
+09-29 02:29:37.939  4595  4632 I LayaTest: downloaded 6597047 / 652043651
+09-29 02:29:40.960  4595  4632 I LayaTest: downloaded 25236994 / 652043651
+09-29 02:29:43.972  4595  4632 I LayaTest: downloaded 35591682 / 652043651
+09-29 02:29:46.981  4595  4632 I LayaTest: downloaded 63968770 / 652043651
+09-29 02:29:49.988  4595  4632 I LayaTest: downloaded 76986722 / 652043651
+09-29 02:29:52.994  4595  4632 I LayaTest: downloaded 108132706 / 652043651
+09-29 02:29:56.000  4595  4632 I LayaTest: downloaded 127252834 / 652043651
+09-29 02:29:59.016  4595  4632 I LayaTest: downloaded 167672162 / 652043651
+09-29 02:30:02.075  4595  4632 I LayaTest: downloaded 178895202 / 652043651
+09-29 02:30:05.090  4595  4632 I LayaTest: downloaded 194437418 / 652043651
+09-29 02:30:08.118  4595  4632 I LayaTest: downloaded 199803178 / 652043651
+09-29 02:30:11.163  4595  4632 I LayaTest: downloaded 210805034 / 652043651
+09-29 02:30:14.172  4595  4632 I LayaTest: downloaded 218259754 / 652043651
+09-29 02:30:17.179  4595  4632 I LayaTest: downloaded 249913642 / 652043651
+09-29 02:30:20.184  4595  4632 I LayaTest: downloaded 263758122 / 652043651
+09-29 02:30:23.189  4595  4632 I LayaTest: downloaded 296608042 / 652043651
+09-29 02:30:26.196  4595  4632 I LayaTest: downloaded 308142378 / 652043651
+09-29 02:30:29.201  4595  4632 I LayaTest: downloaded 343531818 / 652043651
+09-29 02:30:32.207  4595  4632 I LayaTest: downloaded 362717482 / 652043651
+09-29 02:30:35.214  4595  4632 I LayaTest: downloaded 401137962 / 652043651
+09-29 02:30:38.223  4595  4632 I LayaTest: downloaded 419455274 / 652043651
+09-29 02:30:41.229  4595  4632 I LayaTest: downloaded 459776298 / 652043651
+09-29 02:30:44.236  4595  4632 I LayaTest: downloaded 478699818 / 652043651
+09-29 02:30:47.245  4595  4632 I LayaTest: downloaded 516268330 / 652043651
+09-29 02:30:50.256  4595  4632 I LayaTest: downloaded 533831978 / 652043651
+09-29 02:30:53.265  4595  4632 I LayaTest: downloaded 578502954 / 652043651
+09-29 02:30:56.273  4595  4632 I LayaTest: downloaded 601481514 / 652043651
+09-29 02:30:59.279  4595  4632 I LayaTest: downloaded 644096298 / 652043651
+09-29 02:31:07.335  4595  4632 I LayaTest: engine loaded in 3274 ms
+09-29 02:31:07.667  4595  4632 I LayaTest: probabilities [0.9624645837880311, 0.0114557718977953, 0.026079644314173516] ref [0.9628450593934349, 0.011878982859245754, 0.02527595774731935]
+09-29 02:31:08.153  4595  4632 I LayaTest: pilot [aligned, player unaware] -> clear_shot [0.18724120291537694, 0.028168033724450245, 0.6932568991637921, 0.04367388869066377, 0.04765997550571685] (484 ms)
+09-29 02:31:08.621  4595  4632 I LayaTest: pilot [player aiming + 2 bullets] -> under_fire [0.4646189355120164, 0.06039123704204228, 0.3065381266325513, 0.11356184681017192, 0.054889854003218205] (466 ms)
+09-29 02:31:09.104  4595  4632 I LayaTest: pilot [hull 1, far away] -> clear_shot [0.24785231255957607, 0.13419526250501707, 0.4595337107308864, 0.08561284210745851, 0.07280587209706221] (483 ms)
+09-29 02:31:09.566  4595  4632 I LayaTest: pilot [behind the player] -> clear_shot [0.2049766680440195, 0.04093479755871249, 0.6452752352797819, 0.050593049885719554, 0.05822024923176637] (460 ms)
+09-29 02:31:48.847  4595  4632 I LayaTest: simulated match: player 0 x laya 0 | atacar 71% · flanquear 9% · esquivar 17% · recuar 3% 35 decisões do modelo · média 474 ms
+09-29 02:32:18.314  4595  4632 I LayaTest: laya piloto match: player 2 x laya 0 | Comandos do Laya: virar esq. 30%  virar dir. 56%  atirar 6%  esquivar 8%   63 decisões do modelo · média 385 ms
+09-29 02:32:38.080  4595  4632 I LayaTest: tanks, laya piloto: player 1 x laya 1 | Comandos do Laya: virar esq. 10%  virar dir. 12%  atirar 78%   41 decisões do modelo · média 415 ms
+09-29 02:32:56.387  4595  4632 I LayaTest: outputs [logits, act_probs]
+09-29 02:32:56.387  4595  4632 I TestRunner: finished: downloadVerifyAndDecide(com.edward.laya.app.OnDeviceModelTest)
+09-29 02:32:56.389  4595  4632 I TestRunner: run finished: 5 tests, 0 failed, 0 ignored
