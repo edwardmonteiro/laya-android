@@ -77,9 +77,21 @@ public final class World {
     public static final int LIME = 0xFFC6F16D;
     public static final int ROCK = 0xFF8B8F98;
 
+    /** Tank mode: walled arena (no wrap), no drifting, slow turning, indestructible concrete blocks. */
+    public final boolean tanks;
+    public final float bulletSpeed, bulletLife;
+    public static final float TANK_SPEED = 20f;
+
     public World(float w, float h) {
+        this(w, h, false);
+    }
+
+    public World(float w, float h, boolean tanks) {
         this.w = w;
         this.h = h;
+        this.tanks = tanks;
+        this.bulletSpeed = tanks ? 58f : BULLET_SPEED;
+        this.bulletLife = tanks ? 1.5f : BULLET_LIFE;
         resetRound(true);
     }
 
@@ -91,8 +103,27 @@ public final class World {
             asteroids.clear();
             playerScore = 0;
             enemyScore = 0;
+            if (tanks) buildBlocks();
         }
-        while (countBig() < 4) addAsteroid(3, null);
+        if (!tanks) while (countBig() < 4) addAsteroid(3, null);
+    }
+
+    /** A mirrored layout of concrete blocks: cover for both sides, a clear lane in the middle. */
+    private void buildBlocks() {
+        float[][] layout = {
+                {0.36f, 0.22f, 6.5f}, {0.36f, 0.78f, 6.5f}, {0.50f, 0.50f, 7.5f},
+                {0.64f, 0.22f, 6.5f}, {0.64f, 0.78f, 6.5f}, {0.20f, 0.15f, 4.5f},
+                {0.80f, 0.85f, 4.5f}, {0.20f, 0.85f, 4.5f}, {0.80f, 0.15f, 4.5f}};
+        for (float[] b : layout) {
+            Asteroid a = new Asteroid();
+            a.size = 3;
+            a.r = b[2];
+            a.x = w * b[0];
+            a.y = h * b[1];
+            a.rot = (float) (Math.PI / 4) * (rnd.nextFloat() * 0.3f);
+            a.shape = new float[]{1, 1, 1, 1};
+            asteroids.add(a);
+        }
     }
 
     private int countBig() {
@@ -165,6 +196,10 @@ public final class World {
             b.x = wrapX(b.x + b.vx * dt);
             b.y = wrapY(b.y + b.vy * dt);
             b.life -= dt;
+            if (tanks && (b.x <= 0 || b.y <= 0 || b.x >= w || b.y >= h)) {
+                burst(Math.max(0, Math.min(w, b.x)), Math.max(0, Math.min(h, b.y)), ROCK, 4, 10f);
+                b.life = 0;
+            }
             if (b.life <= 0) {
                 it.remove();
                 continue;
@@ -186,12 +221,23 @@ public final class World {
             }
             if (gone) it.remove();
         }
-        for (Asteroid a : hitRocks) breakRock(a);
+        for (Asteroid a : hitRocks) {
+            if (tanks) burst(a.x, a.y, ROCK, 5, 10f);   // shells chip the concrete; blocks stay
+            else breakRock(a);
+        }
 
         for (Ship s : new Ship[]{player, enemy}) {
             if (!s.alive) continue;
             for (Asteroid a : new ArrayList<>(asteroids)) {
-                if (dist(s.x, s.y, a.x, a.y) < a.r + SHIP_R * 0.8f) {
+                if (tanks && dist(s.x, s.y, a.x, a.y) < a.r + SHIP_R) {
+                    // Tanks just stop against the block.
+                    float[] d = delta(a.x, a.y, s.x, s.y);
+                    float len = Math.max(0.01f, (float) Math.hypot(d[0], d[1]));
+                    s.x = a.x + d[0] / len * (a.r + SHIP_R);
+                    s.y = a.y + d[1] / len * (a.r + SHIP_R);
+                    continue;
+                }
+                if (!tanks && dist(s.x, s.y, a.x, a.y) < a.r + SHIP_R * 0.8f) {
                     float[] d = delta(a.x, a.y, s.x, s.y);
                     float len = Math.max(0.01f, (float) Math.hypot(d[0], d[1]));
                     s.vx = d[0] / len * 26f + a.vx;
@@ -205,6 +251,13 @@ public final class World {
         if (player.alive && enemy.alive && dist(player.x, player.y, enemy.x, enemy.y) < SHIP_R * 1.7f) {
             float[] d = delta(enemy.x, enemy.y, player.x, player.y);
             float len = Math.max(0.01f, (float) Math.hypot(d[0], d[1]));
+            if (tanks) {   // push the hulls apart so a collision counts once
+                float push = (SHIP_R * 1.8f - len) / 2f + 0.1f;
+                player.x += d[0] / len * push;
+                player.y += d[1] / len * push;
+                enemy.x -= d[0] / len * push;
+                enemy.y -= d[1] / len * push;
+            }
             player.vx += d[0] / len * 20f;
             player.vy += d[1] / len * 20f;
             enemy.vx -= d[0] / len * 20f;
@@ -226,7 +279,7 @@ public final class World {
             p.vx *= 1f - 1.5f * dt;
             p.vy *= 1f - 1.5f * dt;
         }
-        if (asteroids.size() < 3 && respawnTimer <= 0) addAsteroid(3, null);
+        if (!tanks && asteroids.size() < 3 && respawnTimer <= 0) addAsteroid(3, null);
     }
 
     private void control(Ship s, Control c, float dt) {
@@ -240,7 +293,11 @@ public final class World {
         }
         float thrust = Math.max(0, Math.min(1, c.thrust));
         s.thrustVisual = thrust;
-        if (thrust > 0) {
+        if (tanks) {
+            // Tracks: no drifting, speed follows the throttle along the hull.
+            s.vx = (float) Math.cos(s.angle) * TANK_SPEED * thrust;
+            s.vy = (float) Math.sin(s.angle) * TANK_SPEED * thrust;
+        } else if (thrust > 0) {
             s.vx += (float) Math.cos(s.angle) * 48f * thrust * dt;
             s.vy += (float) Math.sin(s.angle) * 48f * thrust * dt;
         }
@@ -249,9 +306,9 @@ public final class World {
             float ca = (float) Math.cos(s.angle), sa = (float) Math.sin(s.angle);
             b.x = wrapX(s.x + ca * SHIP_R * 1.3f);
             b.y = wrapY(s.y + sa * SHIP_R * 1.3f);
-            b.vx = s.vx + ca * BULLET_SPEED;
-            b.vy = s.vy + sa * BULLET_SPEED;
-            b.life = BULLET_LIFE;
+            b.vx = (tanks ? 0 : s.vx) + ca * bulletSpeed;
+            b.vy = (tanks ? 0 : s.vy) + sa * bulletSpeed;
+            b.life = bulletLife;
             bullets.add(b);
             s.cooldown = s.fireInterval;
         }
@@ -259,6 +316,11 @@ public final class World {
 
     private void move(Ship s, float dt) {
         if (!s.alive) return;
+        if (tanks) {
+            s.x = Math.max(SHIP_R, Math.min(w - SHIP_R, s.x + s.vx * dt));
+            s.y = Math.max(SHIP_R, Math.min(h - SHIP_R, s.y + s.vy * dt));
+            return;
+        }
         float drag = 1f - 0.55f * dt;
         s.vx *= drag;
         s.vy *= drag;
@@ -283,10 +345,10 @@ public final class World {
             burst(s.x, s.y, 0xFFFFFFFF, 20, 25f);
             if (s.isPlayer) {
                 enemyScore++;
-                lastEvent = "Laya abateu você";
+                lastEvent = tanks ? "Laya destruiu seu tanque" : "Laya abateu você";
             } else {
                 playerScore++;
-                lastEvent = "Você abateu o Laya";
+                lastEvent = tanks ? "Você destruiu o tanque do Laya" : "Você abateu o Laya";
             }
             eventTimer = 2.0f;
             respawnTimer = 2.2f;
@@ -324,16 +386,19 @@ public final class World {
     // ------------------------------------------------------------------ geometry (toroidal)
 
     public float wrapX(float x) {
+        if (tanks) return x;
         return x < 0 ? x + w : x >= w ? x - w : x;
     }
 
     public float wrapY(float y) {
+        if (tanks) return y;
         return y < 0 ? y + h : y >= h ? y - h : y;
     }
 
     /** Shortest vector from (ax,ay) to (bx,by) across the wrap. */
     public float[] delta(float ax, float ay, float bx, float by) {
         float dx = bx - ax, dy = by - ay;
+        if (tanks) return new float[]{dx, dy};
         if (dx > w / 2) dx -= w;
         else if (dx < -w / 2) dx += w;
         if (dy > h / 2) dy -= h;

@@ -33,9 +33,19 @@ public class GameLaunchTest {
         runGame(true);
     }
 
+    @Test
+    public void tanksRunWithRules() throws Exception {
+        runGame(false, true);
+    }
+
     private void runGame(boolean useModel) throws Exception {
+        runGame(useModel, false);
+    }
+
+    private void runGame(boolean useModel, boolean tanks) throws Exception {
         Intent i = new Intent(ApplicationProvider.getApplicationContext(), GameActivity.class);
         i.putExtra(GameActivity.EXTRA_USE_MODEL, useModel);
+        i.putExtra(GameActivity.EXTRA_TANKS, tanks);
         try (ActivityScenario<GameActivity> s = ActivityScenario.launch(i)) {
             Thread.sleep(12000);   // countdown + several seconds of play (+ model load if present)
             assertEquals(Lifecycle.State.RESUMED, s.getState());

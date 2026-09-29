@@ -16,6 +16,7 @@ public class GameActivity extends Activity {
     public static final String EXTRA_USE_MODEL = "use_model";
     public static final String EXTRA_PURE = "pure";
     public static final String EXTRA_MODE = "mode";
+    public static final String EXTRA_TANKS = "tanks";
 
     private GameView view;
     private LayaPilot pilot;
@@ -31,7 +32,7 @@ public class GameActivity extends Activity {
         if (getIntent().getBooleanExtra(EXTRA_USE_MODEL, true) && ModelFiles.isReady(this)) {
             pilot.attach(() -> EngineHolder.get(getApplicationContext()));
         }
-        view = new GameView(this, pilot, this::finish);
+        view = new GameView(this, pilot, this::finish, getIntent().getBooleanExtra(EXTRA_TANKS, false));
         setContentView(view);
         hideSystemBars();
     }

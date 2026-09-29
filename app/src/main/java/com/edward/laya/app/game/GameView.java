@@ -53,8 +53,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
     private static final int INK = 0xFFF2F1EC;
     private static final int MUTED = 0xFF8B8F98;
 
+    private final boolean tanks;
+
     public GameView(Context c, LayaPilot pilot, Listener listener) {
+        this(c, pilot, listener, false);
+    }
+
+    public GameView(Context c, LayaPilot pilot, Listener listener, boolean tanks) {
         super(c);
+        this.tanks = tanks;
         this.pilot = pilot;
         this.listener = listener;
         getHolder().addCallback(this);
@@ -78,8 +85,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         u = Math.min(width, height) / 100f;
         if (world == null) {
-            world = new World(width / u, height / u);
+            world = new World(width / u, height / u, tanks);
             pilot.configure(world.enemy);
+            if (tanks) {   // heavier machines: slower turret-less hull turns, slower cannon
+                world.player.turnRate = 2.8f;
+                world.player.fireInterval = 0.45f;
+                world.enemy.turnRate *= 0.7f;
+                world.enemy.fireInterval *= 1.4f;
+            }
             Random r = new Random(7);
             stars = new float[180 * 3];
             for (int i = 0; i < 180; i++) {
@@ -247,14 +260,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
     // ------------------------------------------------------------------ rendering
 
     private void draw(Canvas c, float dt) {
-        c.drawColor(BG);
-        fill.setStyle(Paint.Style.FILL);
-        for (int i = 0; i < stars.length; i += 3) {
-            float tw = 0.6f + 0.4f * (float) Math.sin(time * 1.3f + i);
-            fill.setColor(Color.argb((int) (140 * stars[i + 2] * tw), 220, 225, 240));
-            c.drawCircle(stars[i], stars[i + 1], 0.12f * u * (1 + stars[i + 2]), fill);
+        if (tanks) {
+            drawBattlefield(c);
+        } else {
+            drawSpace(c);
         }
-
         for (World.Asteroid a : world.asteroids) drawAsteroid(c, a);
         for (World.Particle p : world.particles) {
             fill.setColor(withAlpha(p.color, p.life / p.maxLife));
@@ -262,14 +272,86 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
         }
         for (World.Bullet b : world.bullets) {
             int col = b.fromPlayer ? World.CYAN : World.LIME;
+            if (tanks) {   // cannon shell
+                fill.setColor(withAlpha(col, 0.25f));
+                c.drawCircle(b.x * u, b.y * u, 0.9f * u, fill);
+                fill.setColor(col);
+                c.drawCircle(b.x * u, b.y * u, 0.45f * u, fill);
+                continue;
+            }
             float sp = (float) Math.hypot(b.vx, b.vy);
             float tx = b.vx / sp * 1.6f, ty = b.vy / sp * 1.6f;
             line(c, b.x - tx, b.y - ty, b.x, b.y, col, 0.35f);
         }
-        drawShip(c, world.player, World.CYAN);
-        drawShip(c, world.enemy, World.LIME);
+        if (tanks) {
+            drawTank(c, world.player, World.CYAN);
+            drawTank(c, world.enemy, World.LIME);
+        } else {
+            drawShip(c, world.player, World.CYAN);
+            drawShip(c, world.enemy, World.LIME);
+        }
         drawHud(c);
         drawControls(c);
+    }
+
+    private void drawBattlefield(Canvas c) {
+        c.drawColor(0xFF10140E);
+        stroke.setStrokeWidth(0.08f * u);
+        stroke.setColor(0x14FFFFFF);
+        for (float x = 0; x <= world.w; x += 10) c.drawLine(x * u, 0, x * u, world.h * u, stroke);
+        for (float y = 0; y <= world.h; y += 10) c.drawLine(0, y * u, world.w * u, y * u, stroke);
+        stroke.setStrokeWidth(0.6f * u);
+        stroke.setColor(0xFF3A3F33);
+        c.drawRect(0.3f * u, 0.3f * u, (world.w - 0.3f) * u, (world.h - 0.3f) * u, stroke);
+    }
+
+    /** Top-down tank: tracks, hull, turret and barrel along the heading. */
+    private void drawTank(Canvas c, World.Ship s, int color) {
+        if (!s.alive) return;
+        if (s.invulnerable > 0.4f && ((int) (time * 12)) % 2 == 0) return;
+        float R = World.SHIP_R;
+        c.save();
+        c.translate(s.x * u, s.y * u);
+        c.rotate((float) Math.toDegrees(s.angle));
+        float L = 1.35f * R * u, W = 1.0f * R * u;
+        fill.setColor(0xFF1B1F18);
+        c.drawRoundRect(new RectF(-L, -W - 0.35f * R * u, L, -W + 0.3f * R * u), 0.2f * u, 0.2f * u, fill);
+        c.drawRoundRect(new RectF(-L, W - 0.3f * R * u, L, W + 0.35f * R * u), 0.2f * u, 0.2f * u, fill);
+        // track treads scroll with speed
+        stroke.setColor(withAlpha(color, 0.35f));
+        stroke.setStrokeWidth(0.12f * u);
+        float phase = (time * 30f * s.thrustVisual) % (0.5f * R);
+        for (float x = -L + phase * u; x < L; x += 0.5f * R * u) {
+            c.drawLine(x, -W - 0.3f * R * u, x, -W + 0.25f * R * u, stroke);
+            c.drawLine(x, W - 0.25f * R * u, x, W + 0.3f * R * u, stroke);
+        }
+        fill.setColor(withAlpha(color, 0.18f));
+        RectF hull = new RectF(-L * 0.85f, -W * 0.75f, L * 0.85f, W * 0.75f);
+        c.drawRoundRect(hull, 0.4f * u, 0.4f * u, fill);
+        stroke.setColor(color);
+        stroke.setStrokeWidth(0.3f * u);
+        c.drawRoundRect(hull, 0.4f * u, 0.4f * u, stroke);
+        // barrel + turret
+        stroke.setStrokeWidth(0.55f * u);
+        c.drawLine(0, 0, 2.0f * R * u, 0, stroke);
+        fill.setColor(0xFF10140E);
+        c.drawCircle(0, 0, 0.6f * R * u, fill);
+        c.drawCircle(0, 0, 0.6f * R * u, stroke);
+        c.restore();
+        for (int i = 0; i < World.HULL; i++) {
+            fill.setColor(i < s.hull ? withAlpha(color, 0.9f) : 0x33FFFFFF);
+            c.drawCircle((s.x + (i - 1) * 1.3f) * u, (s.y - R * 2.1f) * u, 0.38f * u, fill);
+        }
+    }
+
+    private void drawSpace(Canvas c) {
+        c.drawColor(BG);
+        fill.setStyle(Paint.Style.FILL);
+        for (int i = 0; i < stars.length; i += 3) {
+            float tw = 0.6f + 0.4f * (float) Math.sin(time * 1.3f + i);
+            fill.setColor(Color.argb((int) (140 * stars[i + 2] * tw), 220, 225, 240));
+            c.drawCircle(stars[i], stars[i + 1], 0.12f * u * (1 + stars[i + 2]), fill);
+        }
     }
 
     private void drawAsteroid(Canvas c, World.Asteroid a) {
@@ -286,15 +368,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
                     else path.lineTo(px, py);
                 }
                 path.close();
-                fill.setColor(0xFF0B0D12);
+                fill.setColor(tanks ? 0xFF262A22 : 0xFF0B0D12);
                 c.drawPath(path, fill);
-                strokePath(c, World.ROCK, 0.28f);
+                strokePath(c, tanks ? 0xFF7C8274 : World.ROCK, 0.28f);
             }
         }
     }
 
     /** Asteroids-style wrap: objects near an edge are drawn again on the opposite side. */
     private float[] offsets(float v, float r, float size) {
+        if (tanks) return new float[]{0};
         if (v < r + 3) return new float[]{0, size};
         if (v > size - r - 3) return new float[]{0, -size};
         return new float[]{0};
@@ -410,7 +493,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback, Run
             c.drawText(n > 0 ? String.valueOf(n) : "JÁ!", W / 2, H * 0.52f, text);
             text.setTextSize(2.8f * u);
             text.setColor(MUTED);
-            c.drawText("Esquerda: arraste para pilotar · Direita: segure para atirar", W / 2, H * 0.64f, text);
+            c.drawText(tanks ? "Esquerda: arraste para dirigir o tanque · Direita: segure para disparar o canhão"
+                    : "Esquerda: arraste para pilotar · Direita: segure para atirar", W / 2, H * 0.64f, text);
         }
         if (matchOver) {
             fill.setColor(0xCC05060A);

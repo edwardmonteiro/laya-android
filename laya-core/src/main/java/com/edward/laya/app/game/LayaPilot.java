@@ -431,11 +431,11 @@ public final class LayaPilot {
         float[] d = w.delta(me.x, me.y, pl.x, pl.y);
         float dist = (float) Math.hypot(d[0], d[1]);
         // Lead the target: where will the player be when a bullet arrives?
-        float t = dist / World.BULLET_SPEED;
+        float t = dist / w.bulletSpeed;
         float lx = d[0] + (pl.vx - me.vx) * t, ly = d[1] + (pl.vy - me.vy) * t;
         float leadAngle = (float) Math.atan2(ly, lx) + aimJitter;
         boolean aligned = Math.abs(World.angleDiff(me.angle, leadAngle)) < 0.13f;
-        boolean inRange = dist < World.BULLET_SPEED * World.BULLET_LIFE * 0.85f;
+        boolean inRange = dist < w.bulletSpeed * w.bulletLife * 0.85f;
 
         float moveAngle;
         float thrust;

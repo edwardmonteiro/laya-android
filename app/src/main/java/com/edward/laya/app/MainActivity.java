@@ -55,6 +55,8 @@ public class MainActivity extends Activity {
             "O Laya escolhe a tática (atacar, flanquear, esquivar…) e um piloto automático mira e atira. Sem ajuste fino ele quase sempre escolhe atacar.",
             "A leitura do Laya muda as chances das táticas sugeridas por regras escritas à mão, e um piloto automático executa."};
     private final Button[] modeBtns = new Button[3];
+    private final Button[] arenaBtns = new Button[2];
+    private boolean tanks;
     private int modeIdx;
     private TextView modeNote;
 
@@ -224,7 +226,18 @@ public class MainActivity extends Activity {
         i.putExtra(GameActivity.EXTRA_DIFFICULTY, difficulty);
         i.putExtra(GameActivity.EXTRA_USE_MODEL, useModel);
         i.putExtra(GameActivity.EXTRA_MODE, MODE_ORDER[modeIdx].ordinal());
+        i.putExtra(GameActivity.EXTRA_TANKS, tanks);
         startActivity(i);
+    }
+
+    private void selectArena(boolean t) {
+        tanks = t;
+        getPreferences(MODE_PRIVATE).edit().putBoolean("tanks", t).apply();
+        for (int i = 0; i < arenaBtns.length; i++) {
+            boolean on = (i == 1) == t;
+            arenaBtns[i].setBackground(on ? round(ink, dp(22)) : stroke());
+            arenaBtns[i].setTextColor(on ? bg : ink);
+        }
     }
 
     private void selectMode(int m) {
@@ -267,17 +280,33 @@ public class MainActivity extends Activity {
         TextView brand = text("LAYA", 52, ink, true);
         brand.setLetterSpacing(-0.02f);
         root.addView(brand);
-        TextView sub = text("DUELO NO ESPAÇO", 13, accent, true);
+        TextView sub = text("DUELO · NAVES OU TANQUES", 13, accent, true);
         sub.setLetterSpacing(0.3f);
         root.addView(sub);
-        TextView tag = text("Um modelo de decisão rodando no seu celular pilota a nave inimiga. "
+        TextView tag = text("Um modelo de decisão rodando no seu celular pilota o inimigo, nave ou tanque. "
                 + "No modo piloto, cada comando da nave vem de uma resposta do modelo, com probabilidade calibrada. Vença-o.", 15, muted, false);
         tag.setPadding(0, dp(10), 0, dp(20));
         root.addView(tag);
 
         // --- game card
         LinearLayout gameCard = card();
-        gameCard.addView(kicker("JOGAR"));
+        gameCard.addView(kicker("CENÁRIO"));
+        LinearLayout arenaRow = new LinearLayout(this);
+        arenaRow.setOrientation(LinearLayout.HORIZONTAL);
+        String[] arenas = {"Naves no espaço", "Tanques de guerra"};
+        for (int i = 0; i < 2; i++) {
+            final boolean t = i == 1;
+            Button ab = new Button(this);
+            ab.setText(arenas[i]);
+            ab.setAllCaps(false);
+            ab.setOnClickListener(v -> selectArena(t));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+            if (i == 0) lp.setMarginEnd(dp(8));
+            arenaRow.addView(ab, lp);
+            arenaBtns[i] = ab;
+        }
+        gameCard.addView(arenaRow);
+        gameCard.addView(kicker("DIFICULDADE"), withTop(dp(14)));
         LinearLayout diffRow = new LinearLayout(this);
         diffRow.setOrientation(LinearLayout.HORIZONTAL);
         LayaPilot.Difficulty[] ds = LayaPilot.Difficulty.values();
@@ -317,13 +346,14 @@ public class MainActivity extends Activity {
         modeNote.setPadding(0, dp(8), 0, 0);
         gameCard.addView(modeNote);
         selectMode(getPreferences(MODE_PRIVATE).getInt("modeIdx", 0));
+        selectArena(getPreferences(MODE_PRIVATE).getBoolean("tanks", false));
         Button practice = secondary("Treinar contra IA de regras (sem modelo)");
         practice.setOnClickListener(v -> play(false));
         LinearLayout.LayoutParams prl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
         prl.topMargin = dp(8);
         gameCard.addView(practice, prl);
         TextView how = text("Arraste no lado esquerdo para pilotar, segure o lado direito para atirar. "
-                + "Cada nave aguenta 3 tiros; quem abater o outro 5 vezes vence. O mapa dá a volta nas bordas e os asteroides servem de escudo.", 13, muted, false);
+                + "Cada nave aguenta 3 tiros; quem abater o outro 5 vezes vence. Nas naves o mapa dá a volta nas bordas e os asteroides servem de escudo; nos tanques a arena tem paredes e blocos de concreto para se proteger.", 13, muted, false);
         how.setPadding(0, dp(12), 0, 0);
         gameCard.addView(how);
         root.addView(gameCard);

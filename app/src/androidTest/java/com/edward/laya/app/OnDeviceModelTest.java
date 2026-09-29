@@ -153,9 +153,34 @@ public class OnDeviceModelTest {
                 + flyer.summary().replace('\n', ' '));
         assertTrue("Laya piloto made decisions", flyer.modelDecisions > 5);
 
+        // Tanks, Laya piloto, 20 simulated seconds.
+        LayaPilot tanker = new LayaPilot(LayaPilot.Difficulty.NORMAL);
+        tanker.setMode(LayaPilot.Mode.FLIGHT);
+        tanker.attach(() -> e);
+        World tw = new World(216, 100, true);
+        tanker.configure(tw.enemy);
+        Thread.sleep(300);
+        for (int f = 0; f < 20 * 60; f++) {
+            float[] rel = tw.delta(tw.player.x, tw.player.y, tw.enemy.x, tw.enemy.y);
+            pc.steer = true;
+            pc.aimAngle = (float) Math.atan2(rel[1], rel[0]) + (float) Math.sin(f * 0.02) * 0.8f;
+            pc.thrust = 0.4f;
+            pc.fire = f % 30 < 8;
+            tanker.think(tw, 1f / 60f);
+            tanker.fly(tw, ec);
+            tw.step(1f / 60f, pc, ec);
+            if (tw.isMatchOver()) tw.resetRound(true);
+            Thread.sleep(16);
+        }
+        tanker.shutdown();
+        Log.i(TAG, "tanks, laya piloto: player " + tw.playerScore + " x laya " + tw.enemyScore + " | "
+                + tanker.summary().replace('\n', ' '));
+        assertTrue("Laya drove the tank", tanker.modelDecisions > 5);
+
         // And the real game screen in Laya piloto mode, with the model loaded.
         android.content.Intent gi = new android.content.Intent(c, GameActivity.class);
         gi.putExtra(GameActivity.EXTRA_MODE, LayaPilot.Mode.FLIGHT.ordinal());
+        gi.putExtra(GameActivity.EXTRA_TANKS, true);
         try (androidx.test.core.app.ActivityScenario<GameActivity> sc = androidx.test.core.app.ActivityScenario.launch(gi)) {
             Thread.sleep(12000);
             assertEquals(androidx.lifecycle.Lifecycle.State.RESUMED, sc.getState());
