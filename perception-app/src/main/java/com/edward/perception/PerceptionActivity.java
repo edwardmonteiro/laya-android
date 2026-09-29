@@ -381,27 +381,51 @@ public final class PerceptionActivity extends AppCompatActivity {
             paint.setFakeBoldText(false);
             canvas.drawText(gpsAvailable ? "km/h GPS" : "km/h • GPS indisponível", 131, h - 48, paint);
 
-            float panelLeft = w - 330f;
-            paint.setColor(0xAA000000);
-            canvas.drawRoundRect(panelLeft, 24, w - 24, 206, 22, 22, paint);
+            // Driving alerts must be glanceable. Show them near the visual center, not in a tiny side panel.
+            float alertW = Math.min(w * 0.62f, 720f);
+            float alertLeft = (w - alertW) * 0.5f;
+            float alertTop = 74f;
+            float alertBottom = 156f;
+
+            if (!"—".equals(traffic)) {
+                int tc = trafficColor(traffic);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor((0xCC << 24) | (tc & 0x00FFFFFF));
+                canvas.drawRoundRect(alertLeft, alertTop, alertLeft + alertW, alertBottom, 24, 24, paint);
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setFakeBoldText(true);
+                paint.setTextSize(38f);
+                paint.setColor(Color.WHITE);
+                canvas.drawText("SEMÁFORO  " + traffic, cx, 127f, paint);
+                paint.setFakeBoldText(false);
+            }
+
+            if (brakeLights) {
+                float brakeTop = "—".equals(traffic) ? alertTop : alertBottom + 12f;
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(0xDDC62828);
+                canvas.drawRoundRect(alertLeft, brakeTop, alertLeft + alertW, brakeTop + 82f, 24, 24, paint);
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setFakeBoldText(true);
+                paint.setTextSize(40f);
+                paint.setColor(Color.WHITE);
+                canvas.drawText("FREIO À FRENTE", cx, brakeTop + 54f, paint);
+                paint.setFakeBoldText(false);
+            }
+
+            // Diagnostics stay small because they are not driving instructions.
+            float diagLeft = w - 292f;
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0x88000000);
+            canvas.drawRoundRect(diagLeft, h - 118f, w - 24f, h - 24f, 18, 18, paint);
             paint.setTextAlign(Paint.Align.LEFT);
-            paint.setTextSize(18f);
-            paint.setColor(Color.WHITE);
-            canvas.drawText("SEMÁFORO", panelLeft + 20, 58, paint);
-            paint.setFakeBoldText(true);
-            paint.setTextSize(27f);
-            paint.setColor(trafficColor(traffic));
-            canvas.drawText(traffic, panelLeft + 20, 91, paint);
-            paint.setFakeBoldText(false);
-            paint.setTextSize(15f);
-            paint.setColor(0xFFDDDDDD);
-            canvas.drawText(String.format(Locale.US, "visão %.0f%%", visionConfidence * 100f), panelLeft + 20, 118, paint);
-            paint.setTextSize(17f);
-            paint.setColor(brakeLights ? 0xFFFF5252 : 0xFFB0B0B0);
-            canvas.drawText(brakeLights ? "FREIO À FRENTE • provável" : "freio à frente —", panelLeft + 20, 153, paint);
-            paint.setColor(egoBrake ? 0xFFFFC107 : 0xFFB0B0B0);
+            paint.setTextSize(14f);
+            paint.setColor(0xFFE0E0E0);
+            canvas.drawText(String.format(Locale.US, "visão %.0f%%", visionConfidence * 100f), diagLeft + 16, h - 82f, paint);
             canvas.drawText(String.format(Locale.US, "ego aX %.2f m/s²%s", accel, egoBrake ? " • FREANDO" : ""),
-                    panelLeft + 20, 183, paint);
+                    diagLeft + 16, h - 54f, paint);
+            canvas.drawText(String.format(Locale.US, "ground lock %.0f%%", road.confidence * 100f),
+                    diagLeft + 16, h - 30f, paint);
 
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setColor(0xDDFFFFFF);
@@ -410,8 +434,10 @@ public final class PerceptionActivity extends AppCompatActivity {
         }
 
         private void drawLaneOverlay(Canvas canvas, int w, int h) {
-            float farY = h * 0.55f;
-            float nearY = h * 0.96f;
+            // Ground-lock heuristic: low confidence keeps the vanishing point lower and more conservative.
+            float conf = Math.max(0f, Math.min(1f, road.confidence));
+            float farY = h * (0.63f - 0.10f * conf);
+            float nearY = h * 0.965f;
             float lFar = road.leftFar * w;
             float rFar = road.rightFar * w;
             float lNear = road.leftNear * w;
@@ -431,7 +457,7 @@ public final class PerceptionActivity extends AppCompatActivity {
 
             // Actual detected lane boundaries. Dashed when confidence is low.
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(8f);
+            paint.setStrokeWidth(10f);
             paint.setStrokeCap(Paint.Cap.ROUND);
             paint.setColor(road.confidence >= 0.35f ? 0xEE00E5FF : 0x8890A4AE);
             if (road.confidence < 0.35f) {
@@ -460,7 +486,7 @@ public final class PerceptionActivity extends AppCompatActivity {
             paint.setStyle(Paint.Style.FILL);
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setFakeBoldText(true);
-            paint.setTextSize(15f);
+            paint.setTextSize(18f);
             paint.setColor(0xEEFFFFFF);
             canvas.drawText(String.format(Locale.US, "LANE %.0f%%", road.confidence * 100f),
                     w * 0.5f, h * 0.91f, paint);
