@@ -5,99 +5,96 @@ import androidx.camera.core.ImageProxy;
 import java.nio.ByteBuffer;
 
 /**
- * Lightweight experimental road-corridor estimator.
- * Looks for bright low-saturation lane-like markings in the lower image.
- * It intentionally avoids ML so the first version stays fully local and cheap.
+ * Local lane-marking estimator for the camera frame.
+ * Uses only image intensity/edge evidence and returns normalized lane boundaries.
+ * No network and no ML dependency.
  */
 public final class RoadGeometryDetector {
     public static final class RoadState {
-        public final float centerNorm;
-        public final float curvature;
+        public final float leftNear;
+        public final float rightNear;
+        public final float leftFar;
+        public final float rightFar;
         public final float confidence;
 
-        RoadState(float centerNorm, float curvature, float confidence) {
-            this.centerNorm = centerNorm;
-            this.curvature = curvature;
+        RoadState(float leftNear, float rightNear, float leftFar, float rightFar, float confidence) {
+            this.leftNear = leftNear;
+            this.rightNear = rightNear;
+            this.leftFar = leftFar;
+            this.rightFar = rightFar;
             this.confidence = confidence;
         }
     }
 
-    private static final float[] Y_RATIOS = {0.56f, 0.64f, 0.72f, 0.80f, 0.88f};
+    private static final float[] Y_RATIOS = {0.56f, 0.63f, 0.70f, 0.77f, 0.84f, 0.91f};
 
     public RoadState estimate(ImageProxy image) {
         ImageProxy.PlaneProxy[] planes = image.getPlanes();
-        if (planes.length == 0) return new RoadState(0.5f, 0f, 0f);
+        if (planes.length == 0) return fallback();
 
         ByteBuffer buffer = planes[0].getBuffer();
         int rowStride = planes[0].getRowStride();
         int pixelStride = planes[0].getPixelStride();
         int w = image.getWidth();
         int h = image.getHeight();
+        if (w < 32 || h < 32) return fallback();
 
-        float[] centers = new float[Y_RATIOS.length];
-        boolean[] valid = new boolean[Y_RATIOS.length];
-        int validCount = 0;
+        float[] lefts = new float[Y_RATIOS.length];
+        float[] rights = new float[Y_RATIOS.length];
+        boolean[] lv = new boolean[Y_RATIOS.length];
+        boolean[] rv = new boolean[Y_RATIOS.length];
 
+        int hits = 0;
         for (int i = 0; i < Y_RATIOS.length; i++) {
-            int y = clamp((int) (h * Y_RATIOS[i]), 0, h - 1);
-            int left = bestLanePoint(buffer, rowStride, pixelStride, w, y,
-                    (int) (w * 0.05f), (int) (w * 0.48f));
-            int right = bestLanePoint(buffer, rowStride, pixelStride, w, y,
-                    (int) (w * 0.52f), (int) (w * 0.95f));
+            int y = clamp((int)(h * Y_RATIOS[i]), 2, h - 3);
+            float perspective = clamp01((Y_RATIOS[i] - 0.52f) / 0.40f);
+            int expectedLeft = (int)(w * (0.43f - 0.28f * perspective));
+            int expectedRight = (int)(w * (0.57f + 0.28f * perspective));
 
-            if (left >= 0 && right >= 0 && right - left > w * 0.12f) {
-                centers[i] = (left + right) * 0.5f;
-                valid[i] = true;
-                validCount++;
-            } else if (left >= 0) {
-                centers[i] = left + expectedHalfWidth(w, Y_RATIOS[i]);
-                valid[i] = true;
-                validCount++;
-            } else if (right >= 0) {
-                centers[i] = right - expectedHalfWidth(w, Y_RATIOS[i]);
-                valid[i] = true;
-                validCount++;
-            } else {
-                centers[i] = w * 0.5f;
-            }
+            int left = bestEdge(buffer, rowStride, pixelStride, w, y,
+                    Math.max(3, expectedLeft - (int)(w * 0.18f)),
+                    Math.min(w - 4, expectedLeft + (int)(w * 0.12f)));
+            int right = bestEdge(buffer, rowStride, pixelStride, w, y,
+                    Math.max(3, expectedRight - (int)(w * 0.12f)),
+                    Math.min(w - 4, expectedRight + (int)(w * 0.18f)));
+
+            if (left >= 0) { lefts[i] = left / (float)w; lv[i] = true; hits++; }
+            if (right >= 0) { rights[i] = right / (float)w; rv[i] = true; hits++; }
         }
 
-        float near = weightedCenter(centers, valid, 3, 4, w * 0.5f);
-        float far = weightedCenter(centers, valid, 0, 2, w * 0.5f);
-        float centerNorm = clamp01(near / Math.max(1f, w));
-        float curvature = clamp((far - near) / Math.max(1f, w) * 2.2f, -0.55f, 0.55f);
-        float confidence = validCount / (float) Y_RATIOS.length;
+        float leftFar = mean(lefts, lv, 0, 2, 0.43f);
+        float rightFar = mean(rights, rv, 0, 2, 0.57f);
+        float leftNear = mean(lefts, lv, 3, 5, 0.18f);
+        float rightNear = mean(rights, rv, 3, 5, 0.82f);
 
-        if (confidence < 0.35f) {
-            centerNorm = 0.5f;
-            curvature = 0f;
-        }
-        return new RoadState(centerNorm, curvature, confidence);
+        boolean geometryOkay = leftFar < rightFar && leftNear < rightNear
+                && (rightNear - leftNear) > 0.28f
+                && (rightFar - leftFar) > 0.08f;
+        float confidence = hits / (float)(Y_RATIOS.length * 2);
+        if (!geometryOkay) confidence *= 0.35f;
+
+        return new RoadState(
+                clamp(leftNear, 0.02f, 0.48f),
+                clamp(rightNear, 0.52f, 0.98f),
+                clamp(leftFar, 0.20f, 0.49f),
+                clamp(rightFar, 0.51f, 0.80f),
+                clamp01(confidence)
+        );
     }
 
-    private static int bestLanePoint(ByteBuffer buffer, int rowStride, int pixelStride,
-                                     int width, int y, int startX, int endX) {
+    private static int bestEdge(ByteBuffer b, int rowStride, int pixelStride,
+                                int width, int y, int startX, int endX) {
         int bestX = -1;
-        float bestScore = 150f;
-        int step = 3;
-        int limit = buffer.limit();
+        float bestScore = 38f;
+        int limit = b.limit();
 
-        for (int x = Math.max(0, startX); x < Math.min(width, endX); x += step) {
-            int pos = y * rowStride + x * pixelStride;
-            if (pos < 0 || pos + 2 >= limit) continue;
-            int r = buffer.get(pos) & 0xff;
-            int g = buffer.get(pos + 1) & 0xff;
-            int b = buffer.get(pos + 2) & 0xff;
-            int max = Math.max(r, Math.max(g, b));
-            int min = Math.min(r, Math.min(g, b));
-            int sat = max - min;
-            float luminance = 0.299f * r + 0.587f * g + 0.114f * b;
-
-            boolean whiteLike = luminance > 145f && sat < 90;
-            boolean yellowLike = r > 150 && g > 120 && b < 125 && Math.abs(r - g) < 95;
-            if (!whiteLike && !yellowLike) continue;
-
-            float score = luminance - sat * 0.35f;
+        for (int x = Math.max(3, startX); x <= Math.min(width - 4, endX); x += 2) {
+            float center = intensity(b, rowStride, pixelStride, x, y, limit);
+            float l1 = intensity(b, rowStride, pixelStride, x - 3, y, limit);
+            float r1 = intensity(b, rowStride, pixelStride, x + 3, y, limit);
+            float localContrast = Math.abs(center - l1) + Math.abs(center - r1);
+            float brightnessBonus = Math.max(0f, center - 120f) * 0.35f;
+            float score = localContrast + brightnessBonus;
             if (score > bestScore) {
                 bestScore = score;
                 bestX = x;
@@ -106,33 +103,33 @@ public final class RoadGeometryDetector {
         return bestX;
     }
 
-    private static float expectedHalfWidth(int width, float yRatio) {
-        float perspective = clamp01((yRatio - 0.50f) / 0.42f);
-        return width * (0.08f + perspective * 0.17f);
-    }
-
-    private static float weightedCenter(float[] values, boolean[] valid, int start, int end,
-                                        float fallback) {
-        float sum = 0f;
-        float weight = 0f;
-        for (int i = start; i <= end && i < values.length; i++) {
-            if (!valid[i]) continue;
-            float w = 1f + i * 0.12f;
-            sum += values[i] * w;
-            weight += w;
+    private static float intensity(ByteBuffer b, int rowStride, int pixelStride,
+                                   int x, int y, int limit) {
+        int p = y * rowStride + x * pixelStride;
+        if (p < 0 || p >= limit) return 0f;
+        int c0 = b.get(p) & 0xff;
+        if (pixelStride >= 3 && p + 2 < limit) {
+            int c1 = b.get(p + 1) & 0xff;
+            int c2 = b.get(p + 2) & 0xff;
+            // Robust to RGBA/BGRA channel ordering for lane brightness.
+            return Math.max(c0, Math.max(c1, c2));
         }
-        return weight > 0f ? sum / weight : fallback;
+        return c0;
     }
 
-    private static int clamp(int v, int lo, int hi) {
-        return Math.max(lo, Math.min(hi, v));
+    private static float mean(float[] v, boolean[] valid, int from, int to, float fallback) {
+        float s = 0f; int n = 0;
+        for (int i = from; i <= to && i < v.length; i++) {
+            if (valid[i]) { s += v[i]; n++; }
+        }
+        return n == 0 ? fallback : s / n;
     }
 
-    private static float clamp(float v, float lo, float hi) {
-        return Math.max(lo, Math.min(hi, v));
+    private static RoadState fallback() {
+        return new RoadState(0.18f, 0.82f, 0.43f, 0.57f, 0f);
     }
 
-    private static float clamp01(float v) {
-        return clamp(v, 0f, 1f);
-    }
+    private static int clamp(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
+    private static float clamp(float v, float lo, float hi) { return Math.max(lo, Math.min(hi, v)); }
+    private static float clamp01(float v) { return clamp(v, 0f, 1f); }
 }
